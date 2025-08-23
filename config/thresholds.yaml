@@ -1,0 +1,9 @@
+sentry:
+  hard:
+    vix_max: 10.0
+    index_dd_max: 0.08
+  soft:
+    breadth_min: 55.0
+    northbound_min: 50.0
+    sentiment_min: 0.5
+    min_pass_count: 2

@@ -1,0 +1,133 @@
+# 宏观硬/软条件，仅示例阈值；后续可按策略微调
+macro:
+  hard:            # 硬条件（不通过则“停手”）
+    vix_max: 25            # VIX 不高于此值
+    global_futures_min: -1.5  # 海外期货（日内/隔夜）不低于此阈值（%）
+  soft:            # 软条件（得分/加权）
+    ma_period: 50          # 大盘 MA 周期（如 CSI300 的 MA50）
+    breadth_min: 55        # 市场广度（上涨家数占比 或 adv/dec 之类）
+    northbound_min: 50     # 北向资金净流入分位 或 指标分数（示意）
+
+# 三闸门阈值（下一阶段会用到，这里先放着）
+expectation:
+  rr_min: 2.0
+  pwin_min: 0.60
+  ev_net_min: 0.006
+
+rotation:
+  # ① 强度与排名
+  rank_change_min: 5         # 成交额排名相比昨日/近3日的最小跃升
+  strength_score_min: 0.70   # 自定义强度分（0~1）
+
+  # ② 广度
+  breadth_min: 0.60          # 板块内上涨家数占比（0~1）
+
+  # ③ 时间延续
+  time_continuation_days: 2  # 连续天数（≥2）
+
+  # ④ 资金比例
+  capital_ratio_min: 0.50    # 主力资金/总成交的占比（0~1）
+
+  # ⑤ 背书（龙虎榜/ETF申赎/北向）
+  endorsement_min_count: 1   # 至少命中几项背书
+
+  # ⑥ 隐形资金（暗度陈仓：大单/分时流入等自定义分）
+  hidden_funds_min: 0.55     # 0~1
+
+first_line:
+  top_turnover_n: 2            # 成交额排名前 N 视为一线候选
+  earliest_limit_weight: 0.5   # “最早涨停”权重（用于综合评分）
+  strength_score_min: 0.80     # 分时/日内强度最低分（0~1）
+  max_consecutive_boards_for_entry: 2  # ≥3 连板不作为入场启动标的（策略约束）
+
+second_line:
+  # 成交额 / 市值
+  turnover_rank_max: 8      # 板块内成交额排名需≤此值
+  mkt_cap_min: 100          # 最小市值（亿元）
+  mkt_cap_max: 5000         # 最大市值（亿元）
+
+  # 位置 / 形态（示意：离20日线距离、距阶段高点回撤）
+  distance_ma20_max: 0.08   # 收盘价相对MA20的上方距离≤8%
+  distance_high_max: 0.15   # 距阶段高点回撤≤15%
+
+  # 资金痕迹 / RS
+  rs_min: 0.75              # 相对强弱（0~1）
+  net_inflow_min: 0.50      # 主力净流入（亿元）
+
+  # 估值分层（示意：行业普适阈值，真实可按行业细分）
+  pe_max: 60
+
+  # 快筛避雷
+  avoid:
+    st: true                # 避开ST
+    new_stock_days: 30      # 上市≤30天视为新股回避
+    risk_flags: true        # 一致性风险标记回避（停牌风险/面值退等）
+
+entry:
+  intraday:
+    early_volume_min_ratio: 0.50   # 前两小时成交量占比下限（≥50%）
+    tail_spike_max_ratio:  0.30    # 尾盘突放量占比上限（>则给出警告/不通过）
+
+  breakout:
+    lookback: 20                   # 向上突破的回看窗口（N日新高）
+    margin:   0.005                # 突破冗余（突破幅度≥0.5%）
+
+  pullback:
+    ma_period: 20                  # 回踩均线周期
+    tolerance: 0.02                # 允许“插针到均线”容差（2% 内）
+
+  reversal:
+    min_body_pct: 0.008            # 实体占比（|收-开|/收盘）至少 0.8%
+    need_above_ma: true            # 收盘需在 MA 上方
+
+  follow:
+    ma_period: 20
+    min_gain_margin: 0.003         # 跟随入场最小同步强度（≥0.3%）
+
+gates:
+  rr_min: 2.0         # 最小盈亏比要求（目标/止损 = k_up/k_dn）
+  pwin_min: 0.60      # 最小胜率要求
+  ev_net_min: 0.006   # 净期望下限（≥0.6%/单笔，相对现价）
+  atr_k_up: 2.0       # 目标价 = close + atr_k_up * ATR
+  atr_k_dn: 1.0       # 止损价 = close - atr_k_dn * ATR
+  clamp_pwin: [0.30, 0.80]  # 胜率估计的夹取范围（避免过度乐观/悲观）
+
+position:
+  # 账户与单笔风险
+  risk_pct_per_trade: 0.01      # 单笔风险不超过账户 * 1%
+  max_position_pct:   0.25      # 单笔最大仓位占比 25%
+  min_shares:         100       # 最小下单股数
+  lot_size:           100       # 沪深A股一般以100股为一手
+  fee_pct:            0.0005    # 费率（双边合计近似值）
+  slippage_pct:       0.001     # 滑点（相对价格 0.1%）
+
+exit:
+  # 价格级别（基于 ATR 与 gates 配置中的 k_up/k_dn）
+  use_gates_k:        true      # true: 复用 gates 的 atr_k_up/atr_k_dn
+  fallback_atr_k_up:  2.0       # gates 关闭时的后备参数
+  fallback_atr_k_dn:  1.0
+
+  # 止盈分批（R 倍数与减仓比例）
+  partial_take_profit:
+    - { r_multiple: 1.0, pct: 0.50 }   # 1R 先减 50%
+    - { r_multiple: 2.0, pct: 0.30 }   # 2R 再减 30%
+  trail_atr_k:        1.5       # 移动止损 = 最高价 - 1.5 * ATR
+  time_stop_days:     5         # 进场后 N 日内未达 0.5R 则离场（示例）
+  soft_break_even_R:  0.8       # 达到 0.8R 时将止损抬至成本
+
+playbook:
+  reconsider_on:
+    macro_flip:       true      # 宏观过滤变为不可交易 → 复核/撤退
+    rotation_fail:    true      # 轮动不再推荐 → 复核/撤退
+    abnormal_gap_dn:  true      # 次日大幅低开 → 复核/撤退
+
+# === 市场哨兵阈值（新增）===
+sentry:
+  hard:
+    vix_max: 25.0          # 硬阈值：VIX 最大容忍值，超出立刻熔断/停手
+    index_dd_max: 0.08     # 硬阈值：指数最大回撤（如 CSI300 相对年内高点回撤 8%）
+  soft:
+    breadth_min: 55.0      # 软阈值：市场宽度（上涨家数占比）至少 55%
+    northbound_min: 50.0   # 软阈值：北向净流入/评分至少 50
+    sentiment_min: 0.50    # 软阈值：情绪得分（0~1）至少 0.50
+    min_pass_count: 2      # 建议至少通过几项软阈值（默认为 2）
