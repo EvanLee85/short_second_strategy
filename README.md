@@ -422,9 +422,9 @@ MIT License
 
 ## 联系方式
 
-- 问题反馈：[GitHub Issues](https://github.com/yourusername/trading-system/issues)
+- 问题反馈：[GitHub Issues](https://github.com/EvanLee85/short_second_strategy/issues)
 - 技术交流：trading-system@example.com
 
 ## 免责声明
 
-本系统仅供学习研究使用，不构成投资建议。使用者需自行承担投资风险，开发者不对任何投资损失负责。
+本系统仅供学习研究使用，不构成投资建议。使用者需自行承担投资风险，开发者不对任何投资损失负责。# short_second_strategy
