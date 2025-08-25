@@ -423,7 +423,7 @@ MIT License
 ## 联系方式
 
 - 问题反馈：[GitHub Issues](https://github.com/EvanLee85/short_second_strategy/issues)
-- 技术交流：trading-system@example.com
+- 技术交流：liyiwen85@gmail.com
 
 ## 免责声明
 
