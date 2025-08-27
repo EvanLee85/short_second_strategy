@@ -1,430 +1,407 @@
-# A股短线二线龙头策略量化系统 V2.1
+# 短周期量化交易系统
 
-## 系统概述
+一个基于多数据源的高频量化交易系统，支持灵活的数据源切换、复权处理和Zipline集成。
 
-基于"闸门-阈值-剧本"框架的可量化、可执行、可复盘的A股短线交易系统。专注于热点板块中的二线龙头股票，通过多层次的量化筛选和风险控制，实现稳健的短线收益。
+## 🚀 快速开始
 
-## 核心特点
+### 1. 环境安装
 
-- **六步板块轮动验证**：精准捕捉市场热点切换
-- **多维度龙头筛选**：一线带动，二线跟随
-- **量化风险控制**：三闸门净期望评估体系
-- **实时监控预警**：分时硬指标校验
-- **自动化执行**：买卖剧本预设，情绪熔断机制
-
-## 系统架构
-
-```
-trading-system/
-├── backend/                    # 后端服务
-│   ├── app.py                 # Flask主应用
-│   ├── config/                # 配置管理
-│   │   ├── __init__.py
-│   │   ├── settings.py        # 系统配置
-│   │   └── thresholds.yaml    # 策略阈值配置
-│   ├── core/                  # 核心策略引擎
-│   │   ├── __init__.py
-│   │   ├── macro_filter.py    # 宏观环境过滤器
-│   │   ├── sector_rotation.py # 板块轮动分析
-│   │   ├── stock_selector.py  # 龙头股票筛选
-│   │   ├── entry_signals.py   # 买点信号生成
-│   │   ├── risk_manager.py    # 风险管理器
-│   │   └── executor.py        # 交易执行器
-│   ├── data/                  # 数据处理
-│   │   ├── __init__.py
-│   │   ├── fetcher.py         # 数据获取（akshare）
-│   │   ├── processor.py       # 数据处理
-│   │   ├── cache.py           # 数据缓存
-│   │   └── realtime.py        # 实时数据流
-│   ├── analysis/              # 分析模块
-│   │   ├── __init__.py
-│   │   ├── technical.py       # 技术指标计算
-│   │   ├── capital_flow.py    # 资金流向分析
-│   │   ├── sentiment.py       # 市场情绪分析
-│   │   └── correlation.py     # 相关性分析
-│   ├── backtest/              # 回测引擎
-│   │   ├── __init__.py
-│   │   ├── engine.py          # 回测核心引擎
-│   │   ├── metrics.py         # 性能指标计算
-│   │   └── optimizer.py       # 参数优化器
-│   ├── api/                   # API接口
-│   │   ├── __init__.py
-│   │   ├── routes.py          # 路由定义
-│   │   ├── websocket.py       # WebSocket实时推送
-│   │   └── auth.py            # 认证授权
-│   ├── utils/                 # 工具函数
-│   │   ├── __init__.py
-│   │   ├── logger.py          # 日志管理
-│   │   ├── helpers.py         # 辅助函数
-│   │   └── validators.py      # 数据验证
-│   └── tests/                 # 单元测试
-│       ├── test_macro.py
-│       ├── test_rotation.py
-│       └── test_signals.py
-│
-├── frontend/                   # 前端界面
-│   ├── index.html             # 主页面
-│   ├── css/
-│   │   ├── style.css          # 主样式
-│   │   └── components.css     # 组件样式
-│   ├── js/
-│   │   ├── app.js             # 主应用逻辑
-│   │   ├── dashboard.js       # 仪表板
-│   │   ├── charts.js          # 图表组件
-│   │   ├── websocket.js       # WebSocket连接
-│   │   └── utils.js           # 工具函数
-│   └── assets/                # 静态资源
-│       ├── images/
-│       └── fonts/
-│
-├── database/                   # 数据库
-│   ├── init.sql               # 数据库初始化
-│   ├── schema.sql             # 表结构定义
-│   └── migrations/            # 数据库迁移
-│
-├── logs/                      # 日志文件
-│   ├── system.log             # 系统日志
-│   ├── trading.log            # 交易日志
-│   ├── error.log              # 错误日志
-│   └── backtest.log           # 回测日志
-│
-├── data/                      # 数据存储
-│   ├── market/                # 市场数据
-│   ├── stocks/                # 个股数据
-│   ├── cache/                 # 缓存数据
-│   └── export/                # 导出数据
-│
-├── scripts/                   # 脚本工具
-│   ├── manage.sh              # 系统管理脚本
-│   ├── deploy.sh              # 部署脚本
-│   ├── backup.sh              # 备份脚本
-│   └── monitor.py             # 监控脚本
-│
-├── config/                    # 配置文件
-│   ├── production.env         # 生产环境配置
-│   ├── development.env        # 开发环境配置
-│   └── docker-compose.yml     # Docker配置
-│
-├── docs/                      # 文档
-│   ├── strategy.md            # 策略说明
-│   ├── api.md                 # API文档
-│   └── deployment.md          # 部署指南
-│
-├── requirements.txt           # Python依赖
-├── package.json              # 前端依赖
-├── .env.example              # 环境变量示例
-├── .gitignore                # Git忽略文件
-└── README.md                 # 项目说明
-```
-
-## 核心模块功能
-
-### 1. 宏观环境过滤器 (macro_filter.py)
-- **硬条件检测**：VIX指数、全球市场、A50夜盘
-- **软条件评估**：大盘趋势、市场广度、北向资金
-- **动态阈值调整**：根据市场状态自适应
-- **预备仓位机制**：渐进式建仓策略
-
-### 2. 板块轮动分析 (sector_rotation.py)
-- **六步验证流程**：
-  1. 强弱对比：新旧热点排名变化
-  2. 板块广度：上涨占比与换手率
-  3. 时间延续：连续性验证
-  4. 资金比例：流入流出对比
-  5. 主力背书：龙虎榜与北向验证
-  6. 隐形资金：ETF申赎与股通变动
-- **衰退阈值监控**：第3日成交额预警
-- **逻辑链评分**：板块相关性分析
-
-### 3. 龙头股票筛选 (stock_selector.py)
-- **一线龙头确认**：涨停先锋、成交额领先
-- **二线龙头筛选**：
-  - 成交额排名3-8位
-  - 市值100-800亿区间
-  - PE分层控制
-  - 资金痕迹验证
-  - 时序RS指标
-
-### 4. 买点信号生成 (entry_signals.py)
-- **四类买点识别**：
-  - 突破买：放量突破平台
-  - 回踩买：缩量回踩确认
-  - 趋势延续：均线多头排列
-  - 反包转强：首阴反包
-- **分时硬指标**：
-  - 量占比分析
-  - OBV一致性
-  - 15分钟结构
-  - 1分钟异常过滤
-
-### 5. 风险管理器 (risk_manager.py)
-- **三闸门评估**：
-  - RR风险回报比 ≥2.0
-  - Pwin胜率 ≥0.60
-  - EV_net净期望 ≥+0.6%
-- **仓位控制**：
-  - 单笔风险0.5-1.0%
-  - 总敞口≤30-50%
-  - 动态止损机制
-- **熔断机制**：
-  - 单日-2%停手
-  - 月度-5%休整
-  - 情绪分数监控
-
-### 6. 交易执行器 (executor.py)
-- **自动化下单**：API对接券商系统
-- **卖出剧本执行**：分批止盈止损
-- **时间管理**：T+2/T+3/T+5规则
-- **跌停应对**：应急处理机制
-
-## 数据流程
-
-```mermaid
-graph LR
-    A[实时数据源] --> B[数据获取层]
-    B --> C[数据处理层]
-    C --> D[策略计算层]
-    D --> E[信号生成层]
-    E --> F[风险评估层]
-    F --> G[执行决策层]
-    G --> H[交易执行]
-    H --> I[结果反馈]
-    I --> D
-```
-
-## 快速开始
-
-### 环境要求
-- Python 3.8+
-- Node.js 14+
-- MySQL 8.0+ 或 PostgreSQL 12+
-- Redis 6.0+ (可选，用于缓存)
-
-### 安装步骤
-
-1. **克隆项目**
 ```bash
-git clone https://github.com/yourusername/trading-system.git
-cd trading-system
+# 安装依赖
+pip install pandas numpy zipline-reloaded akshare tushare
+
+# 克隆项目
+git clone <your-repo-url>
+cd short_second_strategy
 ```
 
-2. **安装Python依赖**
-```bash
-pip install -r requirements.txt
-```
+### 2. 配置设置
 
-3. **安装前端依赖**
-```bash
-cd frontend
-npm install
-cd ..
-```
-
-4. **配置环境变量**
-```bash
-cp .env.example .env
-# 编辑 .env 文件，填入你的配置
-```
-
-5. **初始化数据库**
-```bash
-mysql -u root -p < database/init.sql
-mysql -u root -p trading_system < database/schema.sql
-```
-
-6. **启动系统**
-```bash
-./scripts/manage.sh start
-```
-
-## 使用说明
-
-### 启动服务
-```bash
-# 启动全部服务
-./scripts/manage.sh start
-
-# 启动后端服务
-./scripts/manage.sh start backend
-
-# 启动前端服务
-./scripts/manage.sh start frontend
-
-# 查看状态
-./scripts/manage.sh status
-
-# 查看日志
-./scripts/manage.sh logs
-
-# 停止服务
-./scripts/manage.sh stop
-```
-
-### 访问界面
-- 主界面：http://localhost:8080
-- API文档：http://localhost:5000/api/docs
-- 监控面板：http://localhost:8080/monitor
-
-## 策略参数配置
-
-主要参数配置文件：`backend/config/thresholds.yaml`
-
-```yaml
-# 宏观过滤条件
-macro:
-  hard_conditions:
-    vix_max: 25
-    global_futures_min: -1.5
-  soft_conditions:
-    ma_period: 50
-    breadth_min: 55
-    northbound_min: 50
-
-# 板块轮动
-rotation:
-  rank_change_min: 5
-  breadth_min: 60
-  time_continuation: 2
-  capital_ratio: 0.5
-
-# 风险管理
-risk:
-  single_risk_pct: 0.01
-  total_exposure_max: 0.3
-  stop_loss_atr: 1.0
-  daily_loss_limit: -0.02
-  monthly_drawdown_limit: -0.05
-
-# 期望值闸门
-expectation:
-  rr_min: 2.0
-  pwin_min: 0.60
-  ev_net_min: 0.006
-```
-
-## 回测功能
+#### 基础配置 (`config/settings.py`)
 
 ```python
-# 运行回测
-python -m backend.backtest.engine \
-    --start-date 2023-01-01 \
-    --end-date 2024-12-31 \
-    --initial-capital 1000000 \
-    --strategy second-line-leader
-```
+# 数据源配置
+DATA_SOURCES = {
+    'akshare': {
+        'enabled': True,
+        'priority': 1,
+        'timeout': 30
+    },
+    'tushare': {
+        'enabled': True,
+        'priority': 2,
+        'token': 'your_tushare_token_here',  # 必须配置
+        'timeout': 30
+    }
+}
 
-## 性能指标
+# 数据存储路径
+DATA_PATHS = {
+    'raw_data': './data/raw/',
+    'processed_data': './data/processed/', 
+    'zipline_data': './data/zipline/'
+}
 
-系统目标性能：
-- **夏普比率**: > 1.0
-- **最大回撤**: < 15%
-- **月胜率**: > 60%
-- **平均盈亏比**: > 2.0
-
-## API接口示例
-
-### 获取宏观环境状态
-```http
-GET /api/v1/macro/status
-```
-
-### 获取板块轮动分析
-```http
-GET /api/v1/sectors/rotation
-```
-
-### 获取龙头股票列表
-```http
-GET /api/v1/stocks/leaders?sector=AI&type=second-line
-```
-
-### 提交交易信号
-```http
-POST /api/v1/trades/signal
-{
-  "symbol": "002415",
-  "action": "BUY",
-  "quantity": 1000,
-  "price": 52.30
+# 复权设置
+ADJUSTMENT_CONFIG = {
+    'method': 'qfq',  # qfq前复权, hfq后复权, none不复权
+    'base_date': None  # 复权基准日期，None表示最新
 }
 ```
 
-## 监控与告警
+#### 环境变量配置 (`.env`)
 
-系统提供多层次监控：
-- **系统监控**：CPU、内存、磁盘使用率
-- **数据监控**：数据延迟、缺失率
-- **策略监控**：信号触发、执行偏差
-- **风险监控**：仓位、回撤、止损触发
+```bash
+# 复制配置模板
+cp config/.env.example .env
 
-告警通道：
-- 邮件通知
-- 微信推送
-- 钉钉机器人
-- 系统日志
+# 编辑配置文件
+TUSHARE_TOKEN=your_tushare_token_here
+LOG_LEVEL=INFO
+ZIPLINE_ROOT=./data/zipline/
+```
 
-## 开发指南
+### 3. 运行顺序 ⭐
 
-### 添加新策略
-1. 在 `backend/core/` 创建策略文件
-2. 继承 `BaseStrategy` 类
-3. 实现必要的方法
-4. 在配置中注册策略
+**严格按照以下顺序执行，避免数据不一致：**
 
-### 扩展数据源
-1. 在 `backend/data/` 添加数据源适配器
-2. 实现统一的数据接口
-3. 更新数据获取逻辑
+```bash
+# Step 1: 配置验证
+python scripts/verify_config.py
 
-## 注意事项
+# Step 2: 运行测试套件
+python tests/run_tests.py
 
-1. **风险提醒**：本系统仅供研究学习，实盘交易需谨慎
-2. **数据延迟**：免费数据源可能存在15分钟延迟
-3. **监管合规**：请遵守相关法律法规
-4. **资金安全**：建议先进行模拟交易验证
+# Step 3: 数据获取与处理
+python scripts/fetch_data.py --symbols 000001.SZ,600000.SH --start-date 2024-01-01
 
-## 技术栈
+# Step 4: Zipline数据摄入
+python scripts/zipline_ingest.py --bundle custom_bundle
 
-- **后端**：Python, Flask, SQLAlchemy, Celery
-- **前端**：HTML5, CSS3, JavaScript, WebSocket
-- **数据库**：MySQL/PostgreSQL, Redis
-- **数据源**：akshare, tushare, 东方财富
-- **部署**：Docker, Nginx, Supervisor
+# Step 5: 运行策略回测
+python strategies/run_backtest.py --strategy sample_strategy
+```
 
-## 更新日志
+## 📁 项目结构
 
-### V2.1.2 (2025-08-20)
-- 优化宏观过滤器软条件
-- 增加预备仓位机制
-- 改进板块轮动识别
-- 修复分时异常检测bug
+```
+short_second_strategy/
+├── README.md                    # 本文档
+├── config/                      # 配置文件
+│   ├── settings.py             # 主配置文件
+│   ├── .env.example            # 环境变量模板
+│   └── logging.conf            # 日志配置
+├── data_sources/                # 数据源模块
+│   ├── akshare_source.py       # Akshare数据源
+│   ├── tushare_source.py       # Tushare数据源
+│   └── unified_fetcher.py      # 统一数据获取器
+├── data_processor/              # 数据处理模块
+│   ├── session_normalizer.py  # 会话标准化
+│   ├── price_adjuster.py       # 复权处理
+│   └── symbol_mapper.py        # 代码映射
+├── backend/                     # 后端集成
+│   ├── data_fetcher_facade.py  # 数据获取门面
+│   ├── zipline_csv_writer.py   # CSV生成器
+│   └── backend_integration.py  # 集成适配器
+├── tests/                       # 测试模块
+│   ├── run_tests.py            # 测试运行器
+│   ├── unit_tests.py           # 单元测试
+│   └── integration_tests.py    # 集成测试
+├── scripts/                     # 工具脚本
+│   ├── verify_config.py        # 配置验证
+│   ├── fetch_data.py           # 数据获取
+│   └── zipline_ingest.py       # Zipline摄入
+├── strategies/                  # 交易策略
+│   ├── sample_strategy.py      # 示例策略
+│   └── run_backtest.py         # 回测运行器
+└── docs/                        # 文档目录
+    ├── API.md                  # API文档
+    ├── TROUBLESHOOTING.md      # 故障排查
+    └── DEVELOPMENT.md          # 开发指南
+```
 
-### V2.1.1 (2025-08-19)
-- 添加ETF资金流监控
-- 优化二线龙头时序窗口
-- 增强风险熔断机制
+## ⚙️ 配置说明
 
-### V2.1.0 (2025-08-19)
-- 策略框架全面升级
-- 新增六步板块轮动验证
-- 实现三闸门期望评估
+### 数据源配置
 
-## 贡献指南
+系统支持多个数据源，按优先级自动切换：
 
-欢迎提交Issue和Pull Request。请确保：
-1. 代码符合PEP8规范
-2. 包含完整的单元测试
-3. 更新相关文档
+```python
+DATA_SOURCES = {
+    'akshare': {
+        'enabled': True,
+        'priority': 1,        # 优先级：1最高
+        'timeout': 30,        # 请求超时时间(秒)
+        'rate_limit': 1.0,    # 限流：每秒请求数
+        'retry_times': 3      # 失败重试次数
+    },
+    'tushare': {
+        'enabled': True,
+        'priority': 2,
+        'token': 'your_token', # Tushare API token
+        'timeout': 30,
+        'rate_limit': 0.5,     # Tushare限流更严格
+        'retry_times': 3
+    }
+}
+```
 
-## 许可证
+### 复权处理配置
 
-MIT License
+```python
+ADJUSTMENT_CONFIG = {
+    'method': 'qfq',           # 复权方式
+    'base_date': None,         # 复权基准日期
+    'handle_missing': 'drop',  # 缺失数据处理方式
+    'validate_prices': True    # 是否验证价格关系
+}
 
-## 联系方式
+# 复权方式说明：
+# 'qfq' - 前复权：以最新价格为基准向前调整
+# 'hfq' - 后复权：以历史价格为基准向后调整  
+# 'none' - 不复权：使用原始价格数据
+```
 
-- 问题反馈：[GitHub Issues](https://github.com/EvanLee85/short_second_strategy/issues)
-- 技术交流：liyiwen85@gmail.com
+### Zipline集成配置
 
-## 免责声明
+```python
+ZIPLINE_CONFIG = {
+    'bundle_name': 'custom_bundle',
+    'data_frequency': 'daily',
+    'calendar': 'SHSZ',        # 沪深交易日历
+    'start_session': '2020-01-01',
+    'end_session': '2024-12-31'
+}
+```
 
-本系统仅供学习研究使用，不构成投资建议。使用者需自行承担投资风险，开发者不对任何投资损失负责。# short_second_strategy
+## 🔧 使用说明
+
+### 数据获取
+
+```python
+from data_sources.unified_fetcher import UnifiedDataFetcher
+
+# 创建数据获取器
+fetcher = UnifiedDataFetcher()
+
+# 获取单只股票数据
+data = fetcher.get_stock_data(
+    symbol='000001.SZ',
+    start_date='2024-01-01',
+    end_date='2024-12-31',
+    adjust='qfq'  # 前复权
+)
+
+# 批量获取数据
+symbols = ['000001.SZ', '600000.SH', '000002.SZ']
+batch_data = fetcher.batch_get_data(
+    symbols=symbols,
+    start_date='2024-01-01',
+    end_date='2024-12-31'
+)
+```
+
+### 后端集成使用
+
+```python
+# 启用后端集成（一次性设置）
+from backend.backend_integration import enable_backend_integration
+
+enable_backend_integration(
+    csv_data_path='./data/raw/',
+    auto_patch=True  # 自动patch pandas函数
+)
+
+# 现有代码无需修改，自动使用新数据源！
+import pandas as pd
+data = pd.read_csv('data/000001.SZ.csv')  # 自动切换到新数据获取器
+```
+
+### Zipline策略开发
+
+```python
+from zipline import run_algorithm
+from zipline.api import order_percent, symbol
+
+def initialize(context):
+    """策略初始化"""
+    context.asset = symbol('000001.SZ')
+    
+def handle_data(context, data):
+    """每日处理逻辑"""
+    price = data.current(context.asset, 'close')
+    
+    # 简单的买入持有策略
+    if not context.portfolio.positions[context.asset]:
+        order_percent(context.asset, 1.0)
+
+# 运行回测
+result = run_algorithm(
+    start='2024-01-01',
+    end='2024-12-31',
+    initialize=initialize,
+    handle_data=handle_data,
+    bundle='custom_bundle'
+)
+```
+
+## 🧪 测试验证
+
+```bash
+# 运行完整测试套件
+python tests/run_tests.py
+
+# 运行特定测试
+python tests/unit_tests.py                    # 单元测试
+python tests/integration_tests.py             # 集成测试
+
+# 验证部署
+python test_deployment.py                     # 部署验证
+
+# 检查数据一致性
+python scripts/data_consistency_check.py      # 数据一致性检查
+```
+
+## 📊 监控与日志
+
+### 日志配置
+
+系统提供详细的日志记录：
+
+```python
+import logging
+
+# 配置日志级别
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/system.log'),
+        logging.StreamHandler()
+    ]
+)
+```
+
+### 性能监控
+
+```python
+from backend.backend_integration import get_integration_stats
+
+# 获取集成统计
+stats = get_integration_stats()
+print(f"数据获取次数: {stats['read_csv_intercepts']}")
+print(f"回退次数: {stats['fallback_calls']}")
+print(f"错误次数: {stats['errors']}")
+```
+
+## 🚨 常见故障排查
+
+### 快速诊断
+
+```bash
+# 运行系统诊断
+python scripts/system_diagnosis.py
+
+# 检查配置问题
+python scripts/verify_config.py --verbose
+
+# 数据源连通性测试
+python scripts/test_data_sources.py
+```
+
+### 常见问题解决
+
+#### 1. 数据源连接失败
+
+**现象**: `ConnectionError: 数据源连接超时`
+
+**解决方案**:
+```bash
+# 检查网络连接
+ping www.baidu.com
+
+# 验证API token
+python scripts/test_data_sources.py --source tushare
+
+# 调整超时设置
+# 在config/settings.py中增加timeout值
+```
+
+#### 2. 复权数据不一致
+
+**现象**: 同一股票不同时间获取的数据价格不匹配
+
+**原因**: 复权基准日期不同导致
+
+**解决方案**:
+```python
+# 统一复权基准
+ADJUSTMENT_CONFIG = {
+    'method': 'qfq',
+    'base_date': '2024-12-31',  # 设置固定基准日期
+    'cache_adjustment_factors': True
+}
+
+# 清理缓存重新获取
+python scripts/clear_cache.py --type adjustment
+```
+
+#### 3. 会话数据不一致
+
+**现象**: 交易日历与数据日期不匹配
+
+**解决方案**:
+```python
+# 使用标准交易日历
+from zipline.utils.calendars import get_calendar
+
+calendar = get_calendar('SHSZ')  # 沪深交易所日历
+
+# 或手动指定交易日
+TRADING_CALENDAR = {
+    'exclude_weekends': True,
+    'exclude_holidays': True,
+    'custom_holidays': ['2024-01-01', '2024-02-10']  # 自定义假期
+}
+```
+
+#### 4. Zipline摄入失败
+
+**现象**: `zipline ingest` 命令失败
+
+**解决方案**:
+```bash
+# 检查数据格式
+python scripts/validate_zipline_data.py
+
+# 清理Zipline缓存
+zipline clean --bundle custom_bundle
+
+# 重新摄入数据
+python scripts/zipline_ingest.py --bundle custom_bundle --force
+```
+
+## 📞 技术支持
+
+### 获取帮助
+
+- 📖 查看详细文档: [docs/](./docs/)
+- 🐛 问题反馈: [GitHub Issues](issues链接)
+- 💬 技术讨论: [内部技术群]
+
+### 开发与贡献
+
+- 🔧 开发指南: [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)
+- 🧪 测试指南: [docs/TESTING.md](./docs/TESTING.md)
+- 📋 代码规范: [docs/CODING_STANDARDS.md](./docs/CODING_STANDARDS.md)
+
+---
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+
+---
+
+*最后更新: 2025-08-27*
+*版本: 1.0.0*
