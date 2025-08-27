@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-08-27T21:23:10.801063",
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0,
+    "duration": 0.9802489999999999
+  },
+  "results": [
+    {
+      "name": "normalize_sessions_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.00382,
+      "timestamp": "2025-08-27T21:23:09.824074"
+    },
+    {
+      "name": "adjust_pre_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.001073,
+      "timestamp": "2025-08-27T21:23:09.825182"
+    },
+    {
+      "name": "symbol_map_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.000269,
+      "timestamp": "2025-08-27T21:23:09.825515"
+    },
+    {
+      "name": "cache_hit_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 9e-05,
+      "timestamp": "2025-08-27T21:23:09.825613"
+    },
+    {
+      "name": "akshare_fetch_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.405729,
+      "timestamp": "2025-08-27T21:23:10.231366"
+    },
+    {
+      "name": "tushare_fetch_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.309486,
+      "timestamp": "2025-08-27T21:23:10.540882"
+    },
+    {
+      "name": "merge_fallback_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.001655,
+      "timestamp": "2025-08-27T21:23:10.542593"
+    },
+    {
+      "name": "zipline_ingest_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.10983,
+      "timestamp": "2025-08-27T21:23:10.652478"
+    },
+    {
+      "name": "algo_smoke_ok",
+      "passed": true,
+      "message": "PASSED",
+      "duration": 0.148297,
+      "timestamp": "2025-08-27T21:23:10.800831"
+    }
+  ]
+}

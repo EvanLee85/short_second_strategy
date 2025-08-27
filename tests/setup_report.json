@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-08-27T21:08:21.817929",
+  "setup_results": {
+    "python_ok": true,
+    "required_ok": true,
+    "optional_installed": [
+      "akshare"
+    ],
+    "directories_ok": true,
+    "env_vars": {
+      "TUSHARE_TOKEN": null,
+      "TEST_MODE": "unit",
+      "LOG_LEVEL": "INFO"
+    },
+    "test_ok": true
+  },
+  "next_steps": [
+    "运行测试: python tests/run_tests.py",
+    "查看文档: tests/README.md",
+    "配置环境变量: .env.template"
+  ]
+}
