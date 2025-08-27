@@ -3,15 +3,15 @@
 CSV / Stub 适配器
 -----------------
 用途：
-  - 在“无网络 / 限流 / 主备源不可用”时，作为兜底数据源；
+  - 在"无网络 / 限流 / 主备源不可用"时，作为兜底数据源；
   - 同时兼容你现有的 CSV 文件与 Zipline 写入路径（如 data/zipline_csv/TEST.csv）；
-  - 若找不到 CSV 且允许兜底，则按请求区间生成“可控的桩数据（stub）”。
+  - 若找不到 CSV 且允许兜底，则按请求区间生成"可控的桩数据（stub）"。
 
 统一接口：
   fetch_ohlcv(symbol, start, end, freq="1d", adjust="pre"|"none") -> DataFrame
   - 返回列：open, high, low, close, volume
   - 索引：日期（tz-naive，日粒度）
-  - 会调用 normalize.align_and_adjust_ohlcv 做“交易日对齐 + 停牌补行”
+  - 会调用 normalize.align_and_adjust_ohlcv 做"交易日对齐 + 停牌补行"
 """
 
 from __future__ import annotations
@@ -33,9 +33,9 @@ class CsvProvider(BaseMarketDataProvider):
 
     关键能力：
       1）从指定目录读取 CSV（自动识别常见列名与日期列）；
-      2）若 CSV 含“复权因子”（如 adj_factor/factor），支持前复权（pre）；
+      2）若 CSV 含"复权因子"（如 adj_factor/factor），支持前复权（pre）；
       3）若无复权信息，则在 adjust="none" 下直接返回，或在 adjust="pre" 给出最简近似（等同 none）；
-      4）若找不到 CSV 且允许 fallback_stub，则生成区间内的“桩数据”；
+      4）若找不到 CSV 且允许 fallback_stub，则生成区间内的"桩数据"；
       5）统一调用 align_and_adjust_ohlcv：保证时间轴对齐、停牌补行（OHLC=前收、量=0）。
 
     仅支持日线（freq="1d"）。
@@ -110,9 +110,7 @@ class CsvProvider(BaseMarketDataProvider):
                 start=start,
                 end=end,
                 calendar_name=self.calendar_name,
-                adjust="none",
-                price_cols=("open", "high", "low", "close"),
-                volume_col="volume",
+                adjust="none"
             )
 
         # 2）读取 CSV 并标准化列
@@ -122,7 +120,7 @@ class CsvProvider(BaseMarketDataProvider):
 
         df_used, has_factor = self._normalize_columns(raw)
 
-        # 3）处理“前复权”
+        # 3）处理"前复权"
         # 若 CSV 含有复权因子（adj_factor/factor），则执行：前复权价 = 原价 * (adj_factor / 最新因子)
         # 若没有因子：
         #   - adjust="none"：直接进入对齐流程；
@@ -139,14 +137,13 @@ class CsvProvider(BaseMarketDataProvider):
         df_used = df_used[["open", "high", "low", "close", "volume"]].astype(float)
 
         # 5）统一时间轴对齐 + 停牌补行（由 normalize 模块统一处理）
+        # 修复：移除不存在的参数
         df_final = align_and_adjust_ohlcv(
             df_used,
             start=start,
             end=end,
             calendar_name=self.calendar_name,
-            adjust="none",  # 此处已按是否含因子处理价格，不再二次复权
-            price_cols=("open", "high", "low", "close"),
-            volume_col="volume",
+            adjust="none"  # 此处已按是否含因子处理价格，不再二次复权
         )
         return df_final
 
@@ -203,7 +200,7 @@ class CsvProvider(BaseMarketDataProvider):
 
     @staticmethod
     def _pick_date_col(df: pd.DataFrame) -> Optional[str]:
-        """从常见字段中选择“日期列”的列名。"""
+        """从常见字段中选择"日期列"的列名。"""
         candidates = ["date", "trade_date", "t", "timestamp", "dt"]
         lower_cols = {c.lower(): c for c in df.columns}
         for k in candidates:
@@ -290,7 +287,7 @@ class CsvProvider(BaseMarketDataProvider):
     # ----------------------------------------------------------------------
     def _make_stub_ohlcv(self, start: str, end: str) -> pd.DataFrame:
         """
-        生成一段“看起来合理”的桩数据：
+        生成一段"看起来合理"的桩数据：
           - 价格做轻微趋势与噪声；
           - 高低价在开收价附近波动；
           - 成交量为正随机数。

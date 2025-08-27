@@ -35,6 +35,7 @@ __all__ = [
     "FetchRequest",
     "ProviderError",
     "DataProvider",
+    "BaseMarketDataProvider", 
     "SupportsFetchOHLCV",
     "REQUIRED_COLUMNS",
 ]
@@ -146,3 +147,6 @@ class SupportsFetchOHLCV(Protocol):
         adjust: Adjust = "pre",
     ) -> pd.DataFrame:
         ...
+
+# 在 base.py 的末尾添加：
+BaseMarketDataProvider = DataProvider  # 兼容性别名

@@ -1,0 +1,34 @@
+2025-08-26 20:07:14 | INFO     | backend.data.fetcher | 已初始化提供商: ['csv']
+2025-08-26 20:07:14 | ERROR    | backend.data.fetcher.errors | 数据获取失败 | csv | 002415.XSHE | 错误: align_and_adjust_ohlcv() got an unexpected keyword argument 'price_cols' | 6.0ms
+2025-08-26 20:07:14 | INFO     | backend.data.fetcher | 提供商获取完成 | 002415.XSHE | 成功: [] | 失败: []
+2025-08-26 20:07:14 | ERROR    | backend.data.fetcher.errors | 所有数据源均失败: 002415.XSHE | 详情: {}
+2025-08-27 16:52:24 | INFO     | backend.data.fetcher | 已初始化提供商: ['csv']
+2025-08-27 16:52:24 | ERROR    | backend.data.fetcher.errors | 数据获取失败 | csv | 002415.XSHE | 错误: align_and_adjust_ohlcv() got an unexpected keyword argument 'price_cols' | 6.6ms
+2025-08-27 16:52:24 | INFO     | backend.data.fetcher | 提供商获取完成 | 002415.XSHE | 成功: [] | 失败: []
+2025-08-27 16:52:24 | ERROR    | backend.data.fetcher.errors | 所有数据源均失败: 002415.XSHE | 详情: {}
+2025-08-27 17:03:54 | INFO     | backend.data.fetcher | 已初始化提供商: ['csv']
+2025-08-27 17:03:54 | ERROR    | backend.data.fetcher.errors | 数据获取失败 | csv | 002415.XSHE | 错误: align_and_adjust_ohlcv() got an unexpected keyword argument 'price_cols' | 5.3ms
+2025-08-27 17:03:54 | INFO     | backend.data.fetcher | 提供商获取完成 | 002415.XSHE | 成功: [] | 失败: []
+2025-08-27 17:03:54 | ERROR    | backend.data.fetcher.errors | 所有数据源均失败: 002415.XSHE | 详情: {}
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 已初始化提供商: ['csv']
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 数据获取成功 | csv | 002415.XSHE | 7 行 | 11.7ms
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 提供商获取完成 | 002415.XSHE | 成功: ['csv'] | 失败: []
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 单源数据 | csv | 002415.XSHE | 7 行
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 数据合并完成(无问题) | 002415.XSHE | 主源=csv | 总计 7 天 | 覆盖率={'csv': 1.0}
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 数据获取完成 | 002415.XSHE | 7 行 | 主源=csv | 总耗时=14.9ms
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 缓存命中 | csv | 002415.XSHE | 7 行 | 2.1ms
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 缓存命中 | csv | 002415.XSHE | 7 行 | 1.3ms
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 开始生成 Zipline CSV: 1 只股票 -> /home/evan/short_second_strategy/data/zipline_csv_out
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 缓存命中 | csv | 002415.XSHE | 7 行 | 1.4ms
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 已写入: /home/evan/short_second_strategy/data/zipline_csv_out/002415.csv (7 行)
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | Zipline CSV 生成完成: /home/evan/short_second_strategy/data/zipline_csv_out
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 会话统计 | 总请求: 1 个标的
+2025-08-27 17:08:00 | INFO     | backend.data.fetcher | 会话汇总 | 主源使用: {'csv': 1} | 总冲突: 0 天 | 总回填: 0 天
+2025-08-27 17:47:03 | INFO     | backend.data.fetcher | 已初始化提供商: ['csv']
+2025-08-27 17:47:03 | INFO     | backend.data.fetcher | 数据获取成功 | csv | 002415.XSHE | 4 行 | 9.7ms
+2025-08-27 17:47:03 | INFO     | backend.data.fetcher | 提供商获取完成 | 002415.XSHE | 成功: ['csv'] | 失败: []
+2025-08-27 17:47:03 | INFO     | backend.data.fetcher | 单源数据 | csv | 002415.XSHE | 4 行
+2025-08-27 17:47:03 | INFO     | backend.data.fetcher | 数据合并完成(无问题) | 002415.XSHE | 主源=csv | 总计 4 天 | 覆盖率={'csv': 1.0}
+2025-08-27 17:47:03 | INFO     | backend.data.fetcher | 数据获取完成 | 002415.XSHE | 4 行 | 主源=csv | 总耗时=14.1ms
+2025-08-27 17:47:04 | INFO     | backend.data.fetcher | 会话统计 | 总请求: 1 个标的
+2025-08-27 17:47:04 | INFO     | backend.data.fetcher | 会话汇总 | 主源使用: {'csv': 1} | 总冲突: 0 天 | 总回填: 0 天

@@ -1,88 +1,259 @@
-# backend/data/providers/akshare_provider.py
 # -*- coding: utf-8 -*-
-
 """
-AkShare 数据提供器
+AkShare 数据提供器 - 增强版
 =================
-目标：
-  - 通过 AkShare 拉取中国 A 股历史日线数据
-  - 统一为内部标准格式：索引=交易日(date)；列=open, high, low, close, volume(+ 可选 adj_factor)
-  - 自动完成列名重命名、量纲统一（volume→股）、交易日历对齐（XSHG）、停牌日补行、复权处理
-  - 简单的超时/重试机制，增强健壮性
-
-依赖：
-  - akshare
-  - pandas
-  - exchange_calendars（由第4步 normalize 流程间接使用）
-
-注意：
-  - 目前实现 **日线('1d')**，如需分钟级可在后续扩展
-  - 复权策略：
-      * 若 adjust='pre'（默认）或 'post'：直接向 AkShare 请求对应口径（qfq/hfq），
-        并在“对齐”时传入 adjust='none'（避免二次复权）；
-      * 若 adjust='none'：请求未复权口径，仍执行“交易日历对齐+停牌补行”，但不做价格复权。
+增强功能：
+  - 基于tenacity的指数退避重试
+  - 请求限流保护  
+  - 更好的错误分类和处理
+  - 详细的操作日志和统计
 """
 
 from __future__ import annotations
 
 import time
+import logging
 from dataclasses import dataclass
 from typing import Optional, Literal
 
 import pandas as pd
 
+from .base import BaseMarketDataProvider
 from backend.data.normalize import (
     to_internal,
     align_and_adjust_ohlcv,
 )
+from backend.data.exceptions import (
+    ProviderError,
+    NetworkError,
+    RateLimitError,
+    ErrorSeverity,
+    report_error
+)
 
-# 类型标注：仅支持日线
+# 导入重试功能
+try:
+    from tenacity import (
+        retry,
+        stop_after_attempt,
+        wait_exponential,
+        retry_if_exception_type,
+        before_sleep_log,
+        after_log
+    )
+    HAS_TENACITY = True
+except ImportError:
+    HAS_TENACITY = False
+
+# 类型标注
 FreqT = Literal["1d"]
 AdjustT = Literal["pre", "post", "none"]
 
+# 日志记录器
+logger = logging.getLogger(__name__)
 
-@dataclass
-class AkshareProvider:
+
+@dataclass  
+class AkshareProvider(BaseMarketDataProvider):
     """
-    AkShare 数据源适配器
+    AkShare 数据源适配器 - 增强版
 
-    参数：
-      calendar_name : 交易日历名称，默认 'XSHG'（上交所，兼容深沪统一交易日）
-      timeout       : 单次请求超时（秒），AkShare 内部依赖网络，视环境设置
-      retries       : 失败重试次数
-      retry_sleep   : 重试前等待时间（秒）
-      default_exchange : 当传入代码无法推断交易所时，回退交易所（默认 'XSHE'）
-      volume_unit   : 成交量单位转换，'hands' 表示原始为“手”，转换为“股”需 x100；'shares' 表示已为“股”
+    新增参数：
+      enable_retry  : 是否启用重试功能（默认True）
+      enable_rate_limit : 是否启用限流功能（默认True）
+      rate_limit_per_minute : 每分钟最大请求数（默认120）
+      min_retry_wait : 最小重试等待时间（秒）
+      max_retry_wait : 最大重试等待时间（秒）
     """
     calendar_name: str = "XSHG"
     timeout: float = 15.0
-    retries: int = 3
-    retry_sleep: float = 0.8
+    retries: int = 3  # 向后兼容
+    retry_sleep: float = 1.0  # 向后兼容
     default_exchange: str = "XSHE"
     volume_unit: Literal["hands", "shares"] = "hands"
+    enable_retry: bool = True
+    enable_rate_limit: bool = True
+    rate_limit_per_minute: int = 120  # AkShare相对宽松
+    min_retry_wait: float = 1.0
+    max_retry_wait: float = 30.0
 
-    # ---- 内部：AkShare 接口名与复权口径映射 ----
+    # 提供器名称
+    name: str = "akshare"
+
+    # AkShare 接口复权口径映射
     _AK_ADJUST_MAP = {
         "pre": "qfq",   # 前复权
-        "post": "hfq",  # 后复权
+        "post": "hfq",  # 后复权  
         "none": "",     # 不复权
     }
 
+    def __post_init__(self):
+        """初始化后处理"""
+        # 限流控制
+        self._last_requests = []  # 记录最近的请求时间
+        
+        logger.info(
+            f"AkshareProvider initialized: "
+            f"retry={self.enable_retry}({self.retries}), "
+            f"rate_limit={self.enable_rate_limit}({self.rate_limit_per_minute}/min), "
+            f"timeout={self.timeout}s"
+        )
+
     def _ak_import(self):
-        """延迟导入 akshare，避免环境未安装时在其它流程中就报错。"""
+        """延迟导入 akshare"""
         try:
-            import akshare as ak  # type: ignore
+            import akshare as ak
             return ak
         except Exception as e:
-            raise RuntimeError(
-                "未能导入 akshare，请先安装：pip install akshare"
-            ) from e
+            error = ProviderError(
+                "未能导入 akshare，请先安装：pip install akshare",
+                provider=self.name,
+                root_cause=e,
+                severity=ErrorSeverity.CRITICAL
+            )
+            report_error(error)
+            raise error
+
+    def _check_rate_limit(self):
+        """检查并执行限流"""
+        if not self.enable_rate_limit:
+            return
+            
+        now = time.time()
+        # 清除1分钟前的记录
+        self._last_requests = [t for t in self._last_requests if now - t < 60]
+        
+        # 检查是否超过限流
+        if len(self._last_requests) >= self.rate_limit_per_minute:
+            wait_time = 60 - (now - self._last_requests[0])
+            if wait_time > 0:
+                logger.warning(f"AkShare rate limit reached, waiting {wait_time:.1f}s")
+                time.sleep(wait_time)
+                # 重新清理列表
+                now = time.time()
+                self._last_requests = [t for t in self._last_requests if now - t < 60]
+        
+        # 记录本次请求
+        self._last_requests.append(now)
+
+    def _create_retry_decorator(self):
+        """创建重试装饰器"""
+        if not HAS_TENACITY or not self.enable_retry:
+            # 简单重试实现
+            def simple_retry(func):
+                def wrapper(*args, **kwargs):
+                    last_exception = None
+                    for attempt in range(max(1, self.retries)):
+                        try:
+                            return func(*args, **kwargs)
+                        except Exception as e:
+                            last_exception = e
+                            if attempt < self.retries - 1:
+                                wait_time = self.retry_sleep * (2 ** attempt)  # 指数退避
+                                logger.warning(f"AkShare attempt {attempt + 1} failed: {e}. Retrying in {wait_time}s...")
+                                time.sleep(wait_time)
+                    raise last_exception
+                return wrapper
+            return simple_retry
+        
+        # 使用tenacity的高级重试
+        return retry(
+            stop=stop_after_attempt(self.retries),
+            wait=wait_exponential(
+                multiplier=self.retry_sleep,
+                min=self.min_retry_wait,
+                max=self.max_retry_wait
+            ),
+            retry=retry_if_exception_type((
+                ConnectionError,
+                TimeoutError,
+                NetworkError,
+                RateLimitError,
+            )),
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+            after=after_log(logger, logging.DEBUG)
+        )
 
     @staticmethod
     def _date_to_ak(s: str | pd.Timestamp) -> str:
-        """将日期转换为 AkShare 常用的 YYYYMMDD 字符串。"""
+        """将日期转换为 AkShare 的 YYYYMMDD 格式"""
         ts = pd.Timestamp(s)
         return ts.strftime("%Y%m%d")
+
+    def _fetch_daily_core_impl(
+        self,
+        symbol_internal: str,
+        start: str,
+        end: str,
+        adjust: AdjustT,
+    ) -> pd.DataFrame:
+        """
+        核心抓取函数的实现（不含重试装饰器）
+        """
+        ak = self._ak_import()
+        code6 = symbol_internal.split(".")[0]  # 002415.XSHE -> 002415
+
+        start_ = self._date_to_ak(start)
+        end_ = self._date_to_ak(end)
+        adj = self._AK_ADJUST_MAP.get(adjust, "")
+
+        # 执行限流检查
+        self._check_rate_limit()
+        
+        request_start = time.time()
+        logger.debug(f"Fetching AkShare data: {code6}, {start_} to {end_}, adjust={adj}")
+        
+        try:
+            df = ak.stock_zh_a_hist(
+                symbol=code6,
+                period="daily",
+                start_date=start_,
+                end_date=end_,
+                adjust=adj,
+            )
+            
+            request_duration = time.time() - request_start
+            
+            if isinstance(df, pd.DataFrame) and not df.empty:
+                logger.info(
+                    f"AkShare fetch success: {code6}, "
+                    f"{len(df)} rows, {request_duration:.2f}s"
+                )
+                return df
+            else:
+                raise ProviderError(
+                    f"AkShare 返回空数据: symbol={symbol_internal}",
+                    provider=self.name,
+                    symbol=symbol_internal,
+                    severity=ErrorSeverity.MEDIUM
+                )
+                
+        except Exception as e:
+            # 将异常分类并转换
+            error_msg = str(e).lower()
+            if "网络" in error_msg or "timeout" in error_msg or "connection" in error_msg:
+                raise NetworkError(
+                    f"AkShare 网络请求失败: {e}",
+                    provider=self.name,
+                    symbol=symbol_internal,
+                    root_cause=e
+                )
+            elif "限流" in error_msg or "rate limit" in error_msg or "频繁" in error_msg:
+                raise RateLimitError(
+                    f"AkShare 请求限流: {e}",
+                    provider=self.name,
+                    symbol=symbol_internal,
+                    root_cause=e,
+                    retry_after=60
+                )
+            else:
+                raise ProviderError(
+                    f"AkShare 请求失败: {e}",
+                    provider=self.name,
+                    symbol=symbol_internal,
+                    root_cause=e,
+                    severity=ErrorSeverity.HIGH
+                )
 
     def _fetch_daily_core(
         self,
@@ -92,129 +263,92 @@ class AkshareProvider:
         adjust: AdjustT,
     ) -> pd.DataFrame:
         """
-        核心抓取函数（仅日线）。
-        - 调用 ak.stock_zh_a_hist(symbol=六位代码, period='daily', start_date, end_date, adjust)
-        - 返回原始 DataFrame（中文列名），不做对齐与复权（复权已在接口口径完成）
+        带重试的核心抓取函数
         """
-        ak = self._ak_import()
-        code6 = symbol_internal.split(".")[0]  # 内部格式如 002415.XSHE -> 002415
-
-        start_ = self._date_to_ak(start)
-        end_ = self._date_to_ak(end)
-        adj = self._AK_ADJUST_MAP.get(adjust, "")
-
-        last_err: Optional[Exception] = None
-        for _ in range(max(1, self.retries)):
-            try:
-                # AkShare: 东方财富源，常用接口
-                # 文档（以当下版本为准）：stock_zh_a_hist(symbol, period, start_date, end_date, adjust)
-                df = ak.stock_zh_a_hist(
-                    symbol=code6,
-                    period="daily",
-                    start_date=start_,
-                    end_date=end_,
-                    adjust=adj,
-                )
-                if isinstance(df, pd.DataFrame) and not df.empty:
-                    return df
-                last_err = RuntimeError("AkShare 返回空数据")
-            except Exception as e:
-                last_err = e
-            time.sleep(self.retry_sleep)
-
-        # 所有尝试失败
-        raise RuntimeError(f"AkShare 拉取失败：symbol={symbol_internal}, err={last_err}")
+        retry_decorator = self._create_retry_decorator()
+        decorated_func = retry_decorator(self._fetch_daily_core_impl)
+        return decorated_func(symbol_internal, start, end, adjust)
 
     @staticmethod
     def _rename_and_scale(df_raw: pd.DataFrame, volume_unit: str) -> pd.DataFrame:
         """
-        将 AkShare 的中文列名转换为标准列；并完成成交量量纲统一。
-        - 常见列：['日期','开盘','收盘','最高','最低','成交量','成交额','振幅','涨跌幅','涨跌额','换手率']
-        - 我们保留并返回：open, high, low, close, volume
-        - 成交量单位：
-            * 若为“手”(hands)，需 *100 -> 股(shares)
-            * 若已为“股”(shares)，则保持不变
+        列名重命名与成交量量纲统一
         """
         colmap = {
             "日期": "date",
-            "开盘": "open",
+            "开盘": "open", 
             "最高": "high",
             "最低": "low",
             "收盘": "close",
             "成交量": "volume",
-            # 可扩展：若返回包含“前复权因子/复权因子”等，可在此接入 adj_factor
         }
 
-        # 1) 仅保留需要的列（存在则重命名）
+        # 保留需要的列并重命名
         cols = {k: v for k, v in colmap.items() if k in df_raw.columns}
+        if not cols:
+            raise ProviderError(
+                f"AkShare 返回数据缺少必要列，实际列名: {list(df_raw.columns)}"
+            )
+            
         df = df_raw[list(cols.keys())].rename(columns=cols).copy()
 
-        # 2) 基本类型转换
+        # 类型转换
         for c in ("open", "high", "low", "close", "volume"):
             if c in df.columns:
                 df[c] = pd.to_numeric(df[c], errors="coerce")
 
-        # 3) 成交量量纲统一
+        # 成交量量纲统一
         if "volume" in df.columns:
             if volume_unit == "hands":
-                # “手” -> “股”
-                df["volume"] = df["volume"] * 100.0
-            # 若 volume_unit == "shares" 则不处理
+                df["volume"] = df["volume"] * 100.0  # 手 -> 股
 
-        # 4) 索引设置为日期（日粒度）
+        # 索引设置为日期
         if "date" not in df.columns:
-            raise ValueError("AkShare 返回缺少列：'日期'，无法完成重命名为 'date'")
+            raise ProviderError("AkShare 返回缺少日期列")
+            
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
         df = df.dropna(subset=["date"]).set_index("date").sort_index()
 
-        # 5) 去重同日（保险）
+        # 去重同日（保险）
         if df.index.has_duplicates:
             df = df.groupby(df.index).agg({
-                "open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"
+                "open": "first", "high": "max", "low": "min", 
+                "close": "last", "volume": "sum"
             })
 
         return df[["open", "high", "low", "close", "volume"]]
 
-    # ---------- 对外主接口 ----------
     def fetch_ohlcv(
         self,
         symbol: str,
         start: str | pd.Timestamp,
         end: str | pd.Timestamp,
-        freq: FreqT = "1d",
+        freq: FreqT = "1d", 
         adjust: AdjustT = "pre",
     ) -> pd.DataFrame:
         """
-        拉取日线 OHLCV，并返回**已标准化**的数据（索引=交易日，列=open,high,low,close,volume）。
-        - 已完成：列名统一、量纲统一、交易日历对齐与停牌补行、复权处理（见下）
-        - 复权策略：
-            * adjust='pre'（默认）或 'post'：直接拉取前/后复权价格；随后对齐时传入 adjust='none'（避免二次复权）
-            * adjust='none'：拉取未复权价格；对齐时也传入 adjust='none'
+        拉取日线 OHLCV 数据
         """
         if freq != "1d":
             raise NotImplementedError("AkshareProvider 当前仅支持日线 freq='1d'")
 
-        # 统一内部代码，补全交易所后缀（若必要）
+        # 统一内部代码
         internal = to_internal(symbol, default_exchange=self.default_exchange)
 
-        # 1) 原始抓取（按目标复权口径）
+        # 原始抓取（按目标复权口径）
         raw = self._fetch_daily_core(internal, str(start), str(end), adjust=adjust)
 
-        # 2) 列名与量纲统一（volume 归一为“股”）
+        # 列名与量纲统一
         std = self._rename_and_scale(raw, volume_unit=self.volume_unit)
 
-        # 3) 交易日历对齐 + 停牌补行 + 复权处理：
-        #    若已在抓取阶段复了权（pre/hfq），此处应避免再次复权 => adjust='none'
-        adj_for_align = "none"
-
+        # 交易日历对齐 + 停牌补行（已复权则不再复权）
         df_final = align_and_adjust_ohlcv(
             std,
             start=str(start),
             end=str(end),
             calendar_name=self.calendar_name,
-            adjust=adj_for_align,   # 避免二次复权
-            fill_leading=False      # 不强制齐头；若你用于 bundle，可改为 True
+            adjust="none"  # 避免二次复权
         )
 
-        # 返回最终标准化 DataFrame
+        logger.info(f"AkShare fetch completed: {internal}, {len(df_final)} rows")
         return df_final

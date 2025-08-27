@@ -1,0 +1,42 @@
+# 密钥管理配置
+# =====================================
+# 定义各数据源需要的环境变量名称
+
+data_sources:
+  tushare:
+    # TuShare Pro API需要的环境变量
+    token_env_var: "TUSHARE_TOKEN"
+    required: false  # 设为false表示可选，无token时跳过此数据源
+    description: "TuShare Pro API Token, 从 https://tushare.pro 获取"
+    
+  akshare:
+    # AkShare通常免费，但预留token配置
+    token_env_var: "AKSHARE_TOKEN"
+    required: false
+    description: "AkShare API Token (通常不需要)"
+    
+  # 预留其他数据源
+  wind:
+    token_env_var: "WIND_TOKEN"
+    required: false
+    description: "Wind API Token"
+    
+  choice:
+    token_env_var: "CHOICE_TOKEN"
+    required: false
+    description: "东方财富Choice API Token"
+
+# 密钥验证规则
+validation:
+  min_length: 10  # 最小长度
+  allow_test_tokens: true  # 开发环境是否允许测试token
+  
+  # 测试用token（仅开发环境）
+  test_tokens:
+    tushare: "test_tushare_token_for_development"
+
+# 安全策略
+security:
+  log_tokens: false  # 绝不在日志中记录token
+  mask_in_errors: true  # 错误信息中掩码显示token
+  token_cache_ttl: 3600  # token验证缓存时间（秒）

@@ -1,0 +1,6 @@
+2025-08-26 20:07:14 | ERROR    | backend.data.fetcher.errors | _fetch_from_provider:202  | 数据获取失败 | csv | 002415.XSHE | 错误: align_and_adjust_ohlcv() got an unexpected keyword argument 'price_cols' | 6.0ms
+2025-08-26 20:07:14 | ERROR    | backend.data.fetcher.errors | get_ohlcv      :358  | 所有数据源均失败: 002415.XSHE | 详情: {}
+2025-08-27 16:52:24 | ERROR    | backend.data.fetcher.errors | _fetch_from_provider:202  | 数据获取失败 | csv | 002415.XSHE | 错误: align_and_adjust_ohlcv() got an unexpected keyword argument 'price_cols' | 6.6ms
+2025-08-27 16:52:24 | ERROR    | backend.data.fetcher.errors | get_ohlcv      :358  | 所有数据源均失败: 002415.XSHE | 详情: {}
+2025-08-27 17:03:54 | ERROR    | backend.data.fetcher.errors | _fetch_from_provider:202  | 数据获取失败 | csv | 002415.XSHE | 错误: align_and_adjust_ohlcv() got an unexpected keyword argument 'price_cols' | 5.3ms
+2025-08-27 17:03:54 | ERROR    | backend.data.fetcher.errors | get_ohlcv      :358  | 所有数据源均失败: 002415.XSHE | 详情: {}

@@ -1,63 +1,92 @@
-# ==============================================
-# 工程依赖清单（含中文注释）—— 推荐 Python 版本：3.11.x
-# 说明：分阶段启用；“核心依赖”默认安装，其余为可选（按策略实现进度逐步解注）。
-# ==============================================
-
-# -------- 核心运行基座（步骤 0 → 1 必装） --------
-Flask>=3.0                 # Web 框架 / REST API
-Flask-Cors>=4.0            # 跨域支持（前后端分离）
-Flask-SocketIO>=5.3        # 实时推送（盘中分时、事件）
-eventlet>=0.33             # SocketIO 异步后端（与 Flask-SocketIO 搭配）
-loguru>=0.7                # 结构化日志（审计、回放）
-PyYAML>=6.0                # 读取 thresholds.yaml / 配置
-pandas>=2.0                # 时间序列&行情数据处理（策略的基石）
-numpy>=1.24                # 数值计算
-
-# （可选）命令行接口 / 多进程消息队列（规模化时启用）
-# click>=8.1               # CLI 命令组织（如脚本一键运行）
-# redis>=5.0               # SocketIO 跨进程消息队列 & 缓存（生产部署建议启用）
-
-# -------- 宏观过滤 & 板块轮动（步骤 1 → 2） --------
-# requests>=2.31           # 外部数据抓取（VIX、ETF 申赎、北向等）
-# scipy>=1.11              # 相关性、统计检验（可用于轮动/强弱逻辑）
-
-# -------- 龙头识别与二线筛选（步骤 3 → 4） --------
-# pandas-ta>=0.3           # 技术指标集合（建议优先；无需TA-Lib编译）
-# ta>=0.10                 # 另一套指标库（二选一即可）
-# scikit-learn>=1.3        # RS/标准化/简单建模（可选）
-
-# -------- 买点与分时硬校验（步骤 5） --------
-# websockets>=11.0         # 若接第三方分时流（非必须；视数据商SDK而定）
-# numba>=0.59              # 可选加速（大样本分时/回放时有用）
-
-# -------- 三闸门净期望与风控（步骤 6 → 7） --------
-# statsmodels>=0.14        # 胜率估计/分布拟合（可选）
-
-# -------- 卖出剧本 / 报表（步骤 8 → 10） --------
-# jinja2>=3.1              # 文本化“卖出剧本”与日报模板（可选）
-
-# -------- 数据接入与存储（步骤 11） --------
-# akshare>=1.16.72         # A股数据接口（可选；按需接入再启用）
-# tushare>=1.2             # 另一数据源（需自行申请 token）
-# pyarrow>=14              # Parquet 存取（高效本地数据湖）
-# diskcache>=5.6           # 轻量磁盘缓存（避免频繁拉取）
-# SQLAlchemy>=2.0          # ORM/数据库抽象（如后续做持久化）
-# pymysql>=1.1             # MySQL 驱动（若用 MySQL）
-# psycopg2-binary>=2.9     # PostgreSQL 驱动（若用 PostgreSQL）
-
-# -------- 回测与优化（步骤 13） --------
-# optuna>=3.5              # 超参搜索（如阈值网格/贝叶斯）
-
-# -------- 生产部署（步骤 15，可选） --------
-# gunicorn>=21.2           # 部署用 WSGI 服务器（可配 --worker-class eventlet）
-# gevent>=23.9.0           # gevent 异步栈（与 eventlet 二选一）
-# gevent-websocket>=0.10.1 # gevent 的 websocket 支持
-# prometheus_client>=0.20  # 监控指标导出
-
-# ==============================================
-# 使用建议：
-# 1) 最小可跑仅需“核心运行基座”8 个包；其余按步骤实现逐条解注安装。
-# 2) 避免直接启用 TA-Lib 源码编译；如需指标，优先 pandas-ta/ta。
-# 3) 若需要跨进程/多实例扩缩容，请启用 redis 并在 Flask-SocketIO 配置 message_queue。
-# 4) Python 版本建议 3.11.x（与现有脚本、并发/网络依赖兼容性最佳）。
-# ==============================================
+aiohappyeyeballs==2.6.1
+aiohttp==3.12.15
+aiosignal==1.4.0
+akracer==0.0.13
+akshare==1.17.40
+alembic==1.16.4
+attrs==25.3.0
+bcolz-zipline==1.13.0
+beautifulsoup4==4.13.4
+bidict==0.23.1
+blinker==1.9.0
+blosc2==3.7.2
+Bottleneck==1.5.0
+brotlicffi @ file:///croot/brotlicffi_1736182461069/work
+certifi @ file:///croot/certifi_1754570635119/work/certifi
+cffi @ file:///croot/cffi_1736182485317/work
+charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
+click==8.2.1
+decorator==5.2.1
+dnspython==2.7.0
+empyrical-reloaded==0.5.12
+et_xmlfile==2.0.0
+eventlet==0.40.2
+exchange_calendars==4.11.1
+Flask==3.1.2
+flask-cors==6.0.1
+Flask-SocketIO==5.5.1
+frozenlist==1.7.0
+greenlet==3.2.4
+h11==0.16.0
+h5py==3.14.0
+html5lib==1.1
+idna @ file:///croot/idna_1714398848350/work
+intervaltree==3.1.0
+iso3166==2.1.1
+iso4217==1.14.20250512
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jsonpath==0.82.2
+korean-lunar-calendar==0.3.1
+loguru==0.7.3
+lru-dict==1.3.0
+lxml==6.0.1
+Mako==1.3.10
+MarkupSafe==3.0.2
+msgpack==1.1.1
+multidict==6.6.4
+multipledispatch==1.0.0
+ndindex==1.10.0
+nest-asyncio==1.6.0
+networkx==3.5
+numexpr==2.11.0
+numpy==2.3.2
+openpyxl==3.1.5
+packaging==25.0
+pandas==2.3.2
+patsy==1.0.1
+peewee==3.17.3
+platformdirs==4.3.8
+propcache==0.3.2
+py-cpuinfo==9.0.0
+py-mini-racer==0.6.0
+pycparser @ file:///tmp/build/80754af9/pycparser_1636541352034/work
+pyluach==2.2.0
+PySocks @ file:///work/ci_py311/pysocks_1676822712504/work
+python-dateutil==2.9.0.post0
+python-engineio==4.12.2
+python-socketio==5.13.0
+pytz==2025.2
+PyYAML==6.0.2
+requests==2.32.5
+scipy==1.16.1
+simple-websocket==1.1.0
+six==1.17.0
+sortedcontainers==2.4.0
+soupsieve==2.7
+SQLAlchemy==2.0.43
+statsmodels==0.14.5
+tables==3.10.2
+tabulate==0.9.0
+tenacity==9.1.2
+toolz==1.0.0
+tqdm==4.67.1
+typing_extensions==4.14.1
+tzdata==2025.2
+urllib3 @ file:///croot/urllib3_1750775463400/work
+webencodings==0.5.1
+Werkzeug==3.1.3
+wsproto==1.2.0
+xlrd==2.0.2
+yarl==1.20.1
+zipline-reloaded==3.1.1

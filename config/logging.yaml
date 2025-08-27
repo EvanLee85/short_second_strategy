@@ -1,0 +1,194 @@
+# config/logging.yaml
+# 统一日志配置文件，适配现有的logs目录结构
+
+version: 1
+disable_existing_loggers: false
+
+# 格式定义
+formatters:
+  standard:
+    format: '%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  detailed:
+    format: '%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-15s:%(lineno)-4d | %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  json:
+    format: '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "function": "%(funcName)s", "line": %(lineno)d, "message": "%(message)s"}'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  trading:
+    format: '%(asctime)s | %(levelname)-8s | %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+
+# 处理器定义
+handlers:
+  # 系统日志：一般系统运行信息
+  system_file:
+    class: logging.handlers.RotatingFileHandler
+    filename: logs/system.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+    encoding: utf-8
+    formatter: standard
+    level: INFO
+  
+  # 交易日志：策略执行、信号生成、风控决策
+  trading_file:
+    class: logging.handlers.RotatingFileHandler
+    filename: logs/trading.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 10  # 交易日志保留更多备份
+    encoding: utf-8
+    formatter: trading
+    level: INFO
+  
+  # 错误日志：所有ERROR级别以上的日志
+  error_file:
+    class: logging.handlers.RotatingFileHandler
+    filename: logs/error.log
+    maxBytes: 5242880   # 5MB
+    backupCount: 10
+    encoding: utf-8
+    formatter: detailed
+    level: ERROR
+  
+  # 回测日志：回测相关的详细日志
+  backtest_file:
+    class: logging.handlers.RotatingFileHandler
+    filename: logs/backtest.log
+    maxBytes: 20971520  # 20MB
+    backupCount: 3
+    encoding: utf-8
+    formatter: detailed
+    level: DEBUG
+  
+  # 控制台输出
+  console:
+    class: logging.StreamHandler
+    stream: ext://sys.stdout
+    formatter: standard
+    level: INFO
+
+# 日志记录器定义
+loggers:
+  # 数据模块日志
+  backend.data:
+    handlers: [system_file, error_file]
+    level: INFO
+    propagate: false
+  
+  # 数据获取器详细日志
+  backend.data.fetcher:
+    handlers: [system_file, error_file]
+    level: INFO
+    propagate: false
+  
+  # 数据源提供商日志
+  backend.data.providers:
+    handlers: [system_file, error_file]
+    level: INFO
+    propagate: false
+  
+  # 数据合并日志
+  backend.data.merge:
+    handlers: [system_file, error_file]
+    level: INFO
+    propagate: false
+  
+  # 缓存操作日志
+  backend.data.cache:
+    handlers: [system_file]
+    level: INFO
+    propagate: false
+  
+  # 策略核心日志
+  backend.core:
+    handlers: [trading_file, error_file]
+    level: INFO
+    propagate: false
+  
+  # 风险管理日志
+  backend.core.risk_manager:
+    handlers: [trading_file, error_file]
+    level: INFO
+    propagate: false
+  
+  # 回测引擎日志
+  backend.backtest:
+    handlers: [backtest_file, error_file]
+    level: DEBUG
+    propagate: false
+  
+  # API服务日志
+  backend.app:
+    handlers: [system_file, error_file, console]
+    level: INFO
+    propagate: false
+  
+  # 第三方库日志控制
+  akshare:
+    handlers: [system_file]
+    level: WARNING
+    propagate: false
+  
+  tushare:
+    handlers: [system_file]
+    level: WARNING
+    propagate: false
+  
+  requests:
+    handlers: [system_file]
+    level: WARNING
+    propagate: false
+  
+  urllib3:
+    handlers: [system_file]
+    level: WARNING
+    propagate: false
+
+# 根日志记录器
+root:
+  handlers: [console, system_file, error_file]
+  level: INFO
+
+# 数据源相关的特殊配置
+data_source_logging:
+  # 是否记录数据源详细信息
+  log_provider_details: true
+  
+  # 是否记录缓存命中/未命中
+  log_cache_operations: false
+  
+  # 是否记录数据合并冲突详情
+  log_merge_conflicts: true
+  
+  # 是否记录数据验证详情
+  log_validation_details: true
+  
+  # 是否记录性能指标
+  log_performance_metrics: true
+  
+  # 数据质量告警阈值
+  quality_thresholds:
+    min_completeness_ratio: 0.8  # 数据完整性最低要求80%
+    max_conflict_ratio: 0.05     # 冲突率最高5%
+    max_backfill_ratio: 0.1      # 回填率最高10%
+
+# 错误告警配置
+error_alerting:
+  # 是否启用错误告警
+  enabled: true
+  
+  # 告警级别阈值
+  alert_levels:
+    critical: 1    # 1个CRITICAL错误就告警
+    high: 3        # 3个HIGH错误告警
+    medium: 10     # 10个MEDIUM错误告警
+  
+  # 告警时间窗口（分钟）
+  time_window_minutes: 60
+  
+  # 告警抑制时间（分钟）
+  suppression_minutes: 30
