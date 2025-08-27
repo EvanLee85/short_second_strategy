@@ -1,0 +1,46 @@
+# 测试框架依赖包
+# 运行前请安装: pip install -r tests/requirements.txt
+
+# 核心数据处理
+pandas>=1.5.0
+numpy>=1.21.0
+
+# 测试框架（可选，用于更高级的测试功能）
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-xdist>=3.0.0
+
+# 性能监控（可选）
+psutil>=5.9.0
+memory-profiler>=0.60.0
+
+# 数据源相关（可选，用于真实数据测试）
+akshare>=1.10.0
+tushare>=1.2.80
+
+# 时间处理
+python-dateutil>=2.8.0
+
+# 日志和配置
+colorama>=0.4.6
+rich>=13.0.0
+
+# 数据可视化（用于测试结果展示）
+matplotlib>=3.6.0
+seaborn>=0.12.0
+
+# 文件处理
+openpyxl>=3.0.10
+
+# 并行处理（可选）
+joblib>=1.2.0
+
+# JSON处理增强
+ujson>=5.7.0
+
+# 临时文件处理
+tempfile
+
+# 系统信息
+platform
