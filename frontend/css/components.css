@@ -1,0 +1,48 @@
+/* 组件类样式（卡片/表格/按钮等） */
+
+.card {
+  background: radial-gradient(1200px 400px at 20% -20%, rgba(106,165,255, .12), transparent 50%),
+              linear-gradient(180deg, rgba(255,255,255,.02), transparent 50%),
+              var(--card);
+  border:1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.card > .title {
+  font-weight:600; margin-bottom: 8px;
+}
+
+.table {
+  width:100%; border-collapse: collapse; font-size: 14px;
+}
+.table th, .table td {
+  padding: 10px 8px; border-bottom: 1px dashed var(--border);
+}
+.table th { color: var(--muted); text-align:left; }
+.table tr:hover td { background: rgba(255,255,255,.02); }
+
+.btn {
+  display:inline-block; padding: 8px 12px; border-radius:10px;
+  border:1px solid var(--border); color: var(--text); background: rgba(255,255,255,.03);
+  text-decoration: none; font-size:14px;
+}
+.btn:hover { background: rgba(255,255,255,.06); }
+.btn.brand { border-color: rgba(106,165,255,.4); color: var(--brand); }
+.btn.danger { border-color: rgba(248,113,113,.35); color: var(--danger); }
+
+.input, .select {
+  width:100%; padding:8px 10px; border-radius:10px; border:1px solid var(--border);
+  background: rgba(255,255,255,.03); color: var(--text);
+}
+.label { color: var(--muted); font-size: 12px; margin-bottom: 6px; display:block; }
+.form-row { margin-bottom: 12px; }
+
+.toast {
+  position: fixed; right: 16px; bottom: 16px; z-index: 50;
+  background: #11141b; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  color: var(--text);
+}
+.toast.ok { border-color: rgba(74,222,128,.4); }
+.toast.err { border-color: rgba(248,113,113,.4); }

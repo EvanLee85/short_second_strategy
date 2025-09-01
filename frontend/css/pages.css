@@ -1,0 +1,4 @@
+/* 页面级样式 */
+.page-title { font-size: 18px; font-weight: 700; margin: 4px 0 12px; }
+.kv { display:flex; gap: 6px; align-items:center; color: var(--muted); }
+.kv strong { color: var(--text); }

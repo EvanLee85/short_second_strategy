@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>short_second_strategy 控制台</title>
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/pages.css" />
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/logo.svg" alt="logo" onerror="this.style.display='none'">
+      <span>Short Second Strategy 控制台</span>
+    </div>
+    <nav class="nav">
+      <!-- 注意：hash 路由，仅做占位，后续可根据权限/配置动态渲染 -->
+      <a href="#/health">健康</a>
+      <a href="#/macro">宏观</a>
+      <a href="#/sectors">轮动</a>
+      <a href="#/leaders">龙头</a>
+      <a href="#/signal">信号</a>
+      <a href="#/risk">风控</a>
+      <a href="#/paper">纸上交易</a>
+    </nav>
+  </header>
+
+  <!-- 页面容器（路由挂载点） -->
+  <main id="app" class="app-container"></main>
+
+  <!-- 底部信息 -->
+  <footer class="footer">
+    <span>© 2025 short_second_strategy</span>
+  </footer>
+
+  <!-- 入口脚本：使用 ES Modules -->
+  <script type="module" src="./js/runtime.js"></script>
+</body>
+</html>

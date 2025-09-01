@@ -25,6 +25,7 @@ from typing import Dict, List, Optional, Union, Any
 
 import yaml
 import pandas as pd
+from backend.data.normalize import get_sessions_index
 
 # ---- 日志配置 ----
 def setup_logging() -> None:
@@ -503,6 +504,97 @@ def get_default_fetcher(config_path: Optional[str] = None) -> DataFetcher:
         _default_fetcher = DataFetcher(cfg)
     return _default_fetcher
 
+# Add this function to your fetcher.py file, after the DataFetcher class definition
+
+def get_vix(start: str, end: str, fetcher: Optional[DataFetcher] = None) -> pd.DataFrame:
+    """
+    获取 VIX 恐慌指数数据
+    
+    Args:
+        start: 开始日期 (YYYY-MM-DD)
+        end: 结束日期 (YYYY-MM-DD)  
+        fetcher: DataFetcher实例，如果为None则使用默认实例
+        
+    Returns:
+        pd.DataFrame: VIX数据，包含close列
+    """
+    if fetcher is None:
+        fetcher = get_default_fetcher()
+    
+    try:
+        # VIX的标准代码，根据你的数据源调整
+        # 如果使用akshare，VIX代码可能是 "VIX" 或其他
+        # 如果使用tushare，可能需要特定的VIX代码
+        vix_symbol = "VIX"  # 根据实际情况调整
+        
+        df = fetcher.get_ohlcv(
+            symbol=vix_symbol,
+            start=start,
+            end=end,
+            freq="1d",
+            adjust="pre"
+        )
+        
+        if df is None or df.empty:
+            # 如果主要数据源没有VIX，可以尝试其他代码或返回模拟数据
+            logging.getLogger(__name__).warning(f"无法获取VIX数据: {start} to {end}")
+            # 返回空的DataFrame但保持结构
+            return pd.DataFrame(columns=["close"]).astype(float)
+        
+        # VIX通常只需要收盘价
+        return df[["close"]].copy()
+        
+    except Exception as e:
+        logging.getLogger(__name__).error(f"获取VIX数据失败: {e}")
+        # 返回空DataFrame
+        return pd.DataFrame(columns=["close"]).astype(float)
+
+
+def get_macro_indicators(
+    indicators: List[str], 
+    start: str, 
+    end: str, 
+    fetcher: Optional[DataFetcher] = None
+) -> Dict[str, pd.DataFrame]:
+    """
+    批量获取宏观指标数据
+    
+    Args:
+        indicators: 指标代码列表，如 ["VIX", "DXY", "TNX"] 
+        start: 开始日期
+        end: 结束日期
+        fetcher: DataFetcher实例
+        
+    Returns:
+        Dict[str, pd.DataFrame]: 指标名 -> 数据DataFrame
+    """
+    if fetcher is None:
+        fetcher = get_default_fetcher()
+    
+    results = {}
+    
+    for indicator in indicators:
+        try:
+            if indicator.upper() == "VIX":
+                results[indicator] = get_vix(start, end, fetcher)
+            else:
+                # 其他宏观指标，使用通用方法获取
+                df = fetcher.get_ohlcv(
+                    symbol=indicator,
+                    start=start,
+                    end=end,
+                    freq="1d"
+                )
+                if df is not None and not df.empty:
+                    results[indicator] = df[["close"]].copy()
+                else:
+                    results[indicator] = pd.DataFrame(columns=["close"]).astype(float)
+                    
+        except Exception as e:
+            logging.getLogger(__name__).error(f"获取指标 {indicator} 失败: {e}")
+            results[indicator] = pd.DataFrame(columns=["close"]).astype(float)
+    
+    return results
 
 # 示例配置模板（可打印到控制台帮助落盘）
 EXAMPLE_CONFIG_YAML = """
