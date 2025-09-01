@@ -1,43 +1,98 @@
-// 端点函数：与后端 /api/v1/* 对齐（仅签名，后续页面调用）
-// 现有后端路由见你贴出的 url_map
+// frontend/js/api/endpoints.js
+// 统一端点封装（全部中文注释）：
+// - 所有函数都返回 { ok, data, error, status } 结构（由 http.js 保证）。
+// - 这里仅关心业务路径与入参/出参的说明。
+// - 兼容两种导出方式：命名导出 & 默认导出（default 为一个包含所有函数的对象）。
 
-import { CONFIG } from "../config.js";
-import { httpGet, httpPost } from "./http.js";
+import { get, post } from './http.js';
 
-const B = CONFIG.API_BASE;
+/** 健康检查：GET /api/v1/health */
+export function getHealth() {
+  return get('/api/v1/health');
+}
 
-export const api = {
-  // 健康检查
-  health: () => httpGet(`${B}/health`),
+/** 宏观状态（风控/哨兵）：GET /api/v1/macro/status */
+export function getMacroStatus() {
+  return get('/api/v1/macro/status');
+}
 
-  // 宏观过滤器
-  macroStatus: () => httpGet(`${B}/macro/status`),
+/** 板块轮动：GET /api/v1/sectors/rotation?sector=AI */
+export function getSectorsRotation(sector) {
+  const params = sector ? { sector } : null;
+  return get('/api/v1/sectors/rotation', params);
+}
 
-  // 行业轮动
-  sectorRotation: (sector) => {
-    const q = sector ? `?sector=${encodeURIComponent(sector)}` : "";
-    return httpGet(`${B}/sectors/rotation${q}`);
-  },
+/** 龙头/二线筛选：GET /api/v1/stocks/leaders?type=first-line|second-line&sector=AI */
+export function getStocksLeaders({ type, sector } = {}) {
+  const params = { type };
+  if (sector) params.sector = sector;
+  return get('/api/v1/stocks/leaders', params);
+}
 
-  // 龙头筛选
-  leaders: ({ type, sector } = {}) => {
-    const params = new URLSearchParams();
-    if (type) params.set("type", type);
-    if (sector) params.set("sector", sector);
-    const qs = params.toString() ? `?${params.toString()}` : "";
-    return httpGet(`${B}/stocks/leaders${qs}`);
-  },
+/** 入场信号评估：POST /api/v1/trades/signal
+ * payload: {symbol, mode, intraday?, ohlcv?, price?}
+ */
+export function postTradeSignal(payload) {
+  return post('/api/v1/trades/signal', payload);
+}
 
-  // 入场信号
-  tradeSignal: (payload) => httpPost(`${B}/trades/signal`, payload),
+/** 交易闸门评估：POST /api/v1/risk/evaluate
+ * payload: {symbol, sector?, price?}
+ */
+export function postRiskEvaluate(payload) {
+  return post('/api/v1/risk/evaluate', payload);
+}
 
-  // 风控：评估/仓位/剧本
-  riskEvaluate: (payload) => httpPost(`${B}/risk/evaluate`, payload),
-  riskPosition: (payload) => httpPost(`${B}/risk/position`, payload),
-  riskExitPlan: (payload) => httpPost(`${B}/risk/exit-plan`, payload),
+/** 仓位建议：POST /api/v1/risk/position
+ * payload: {symbol, sector?, account_size, price?}
+ */
+export function postRiskPosition(payload) {
+  return post('/api/v1/risk/position', payload);
+}
 
-  // 纸上交易
-  paperOpen: (payload) => httpPost(`${B}/paper/open`, payload),
-  paperStep: (payload) => httpPost(`${B}/paper/step`, payload),
-  paperState: () => httpGet(`${B}/paper/state`),
+/** 撤退剧本：POST /api/v1/risk/exit-plan
+ * payload: {symbol, sector?, entry, stop}
+ */
+export function postRiskExitPlan(payload) {
+  return post('/api/v1/risk/exit-plan', payload);
+}
+
+/** 纸上交易-开仓：POST /api/v1/paper/open
+ * payload: {symbol, sector?, mode, price?, account_size?}
+ */
+export function postPaperOpen(payload) {
+  return post('/api/v1/paper/open', payload);
+}
+
+/** 纸上交易-推进：POST /api/v1/paper/step
+ * payload: {price, high?, low?}
+ */
+export function postPaperStep(payload) {
+  return post('/api/v1/paper/step', payload);
+}
+
+/** 纸上交易-状态：GET /api/v1/paper/state */
+export function getPaperState() {
+  return get('/api/v1/paper/state');
+}
+
+// —— 默认导出一个聚合对象（方便以 m.default 或 window.api 方式使用）——
+const api = {
+  getHealth,
+  getMacroStatus,
+  getSectorsRotation,
+  getStocksLeaders,
+  postTradeSignal,
+  postRiskEvaluate,
+  postRiskPosition,
+  postRiskExitPlan,
+  postPaperOpen,
+  postPaperStep,
+  getPaperState,
 };
+export default api;
+
+// 可选：在浏览器环境挂到 window 便于调试（不影响模块导入）。
+if (typeof window !== 'undefined') {
+  window.api = api;
+}

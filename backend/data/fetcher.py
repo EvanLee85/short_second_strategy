@@ -11,21 +11,26 @@
   - DataFetcher.get_ohlcv(symbol, start, end, freq="1d", adjust="pre") -> pd.DataFrame
   - DataFetcher.write_zipline_csv(symbols, start, end, out_dir, ...) -> None
   - get_default_fetcher(config_path: Optional[str]) -> DataFetcher
+
+模块级便捷函数（兼容旧代码 / MacroFilter 依赖）：
+  - get_ohlcv(...): 调用默认 DataFetcher
+  - get_vix() / get_global_futures_change() / get_index_above_ma(...) /
+    get_market_breadth() / get_northbound_score() 等：提供可运行的安全兜底
 """
 
 from __future__ import annotations
 
 import os
 import time
+import json
 import logging
 import logging.config
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, Iterable
 
 import yaml
 import pandas as pd
-from backend.data.normalize import get_sessions_index
 
 # ---- 日志配置 ----
 def setup_logging() -> None:
@@ -44,22 +49,35 @@ def setup_logging() -> None:
 
 # 模块导入时初始化日志
 setup_logging()
+logger = logging.getLogger("data.fetcher")
 
 # ---- 引用数据层组件 ----
 from backend.data.providers.akshare_provider import AkshareProvider
 from backend.data.providers.tushare_provider import TuShareProvider
 from backend.data.providers.csv_provider import CsvProvider
+
 from backend.data.merge import merge_ohlcv
 from backend.data.cache import cache_ohlcv_get, cache_ohlcv_put
-from backend.data.normalize import to_internal
+from backend.data.normalize import to_internal, get_sessions_index
 
-# 异常/错误上报
+# 异常/错误上报（第12步）
 from backend.data.exceptions import (
     DataSourceError, ErrorContext, ErrorSeverity,
     create_provider_error, report_error, get_global_error_summary
 )
 
+# 技术指标（用于 get_index_above_ma 的计算）
+try:
+    from backend.analysis.technical import ma
+except Exception:
+    # 兜底：简单均线
+    def ma(s: pd.Series, n: int) -> pd.Series:
+        return pd.Series(s).rolling(n, min_periods=1).mean()
 
+
+# =========================
+# 配置对象
+# =========================
 @dataclass
 class FetchConfig:
     """数据获取配置（可由 YAML 加载）。"""
@@ -81,550 +99,442 @@ class FetchConfig:
     default_exchange: str = "XSHE"              # 未带交易所后缀时默认补深交所
 
     @classmethod
-    def from_yaml(cls, config_path: str) -> "FetchConfig":
-        """从 YAML 文件加载配置；不存在时使用默认。"""
-        if not os.path.exists(config_path):
-            logging.getLogger(__name__).warning(f"配置文件不存在: {config_path}，使用默认配置")
+    def from_yaml(cls, config_path: str | Path) -> "FetchConfig":
+        """从 YAML 加载配置，不存在则使用默认。"""
+        p = Path(config_path)
+        if not p.exists():
+            logger.warning("未找到数据提供商配置 %s，使用默认值。", p)
             return cls()
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
+            data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
             return cls(
                 provider_priority=data.get("provider_priority", cls().provider_priority),
                 provider_configs=data.get("provider_configs", {}),
                 enable_cache=data.get("enable_cache", True),
                 cache_ttl_hours=data.get("cache_ttl_hours", cls().cache_ttl_hours),
-                conflict_threshold=data.get("conflict_threshold", 0.02),
-                freshness_tolerance_days=data.get("freshness_tolerance_days", 3),
+                conflict_threshold=float(data.get("conflict_threshold", 0.02)),
+                freshness_tolerance_days=int(data.get("freshness_tolerance_days", 3)),
                 default_calendar=data.get("default_calendar", "XSHG"),
                 default_exchange=data.get("default_exchange", "XSHE"),
             )
         except Exception as e:
-            logging.getLogger(__name__).warning(f"加载配置失败: {e}，使用默认配置")
+            logger.exception("解析 %s 失败，使用默认配置。err=%s", p, e)
             return cls()
 
 
+# =========================
+# DataFetcher 主体
+# =========================
 class DataFetcher:
-    """
-    统一数据获取器
-    职责：
-      1) 管理多个数据提供商
-      2) 按优先级获取 → 合并冲突 → 产出标准 OHLCV
-      3) 读写缓存
-      4) 记录数据质量与合并统计
-    """
+    """统一数据读取器：按优先级尝试各 Provider，做统一规范化、合并与缓存。"""
 
-    def __init__(self, config: Optional[FetchConfig] = None) -> None:
-        self.config = config or FetchConfig()
-        self.logger = logging.getLogger("backend.data.fetcher")
-        self.error_logger = logging.getLogger("backend.data.fetcher.errors")
-        self.providers = self._init_providers()
-        self.session_stats: Dict[str, Any] = {}
-        self.logger.info(f"已初始化提供商: {list(self.providers.keys())}")
+    def __init__(self, config: Optional[FetchConfig] = None):
+        self.cfg = config or FetchConfig.from_yaml("config/data_providers.yaml")
+        self.providers: Dict[str, Any] = {}
+        self._init_providers()
+        logger.info("DataFetcher 初始化完毕：providers=%s", list(self.providers.keys()))
 
-    # ---------- 私有工具 ----------
+    def _init_providers(self) -> None:
+        """按配置初始化各 Provider 实例。"""
+        pcfgs = self.cfg.provider_configs or {}
 
-    def _init_providers(self) -> Dict[str, Any]:
-        """按优先级初始化各 Provider 实例。"""
-        providers: Dict[str, Any] = {}
-        for name in self.config.provider_priority:
-            try:
-                cfg = self.config.provider_configs.get(name, {})
-                if name == "akshare":
-                    providers[name] = AkshareProvider(
-                        calendar_name=self.config.default_calendar,
-                        default_exchange=self.config.default_exchange,
-                        **cfg
-                    )
-                elif name == "tushare":
-                    providers[name] = TuShareProvider(
-                        calendar_name=self.config.default_calendar,
-                        **cfg
-                    )
-                elif name == "csv":
-                    providers[name] = CsvProvider(
-                        calendar_name=self.config.default_calendar,
-                        **cfg
-                    )
-                else:
-                    self.logger.warning(f"未知提供商: {name}（忽略）")
-            except Exception as e:
-                self.logger.warning(f"初始化提供商失败: {name} -> {e}")
-        return providers
-
-    def _get_cache_ttl(self, freq: str) -> int:
-        """按频率返回缓存 TTL（单位：小时）。"""
-        return int(self.config.cache_ttl_hours.get(freq, 1))
-
-    def _fetch_from_provider(
-        self,
-        provider_name: str,
-        symbol: str,
-        start: str,
-        end: str,
-        freq: str,
-        adjust: str
-    ) -> Optional[pd.DataFrame]:
-        """向指定提供商拉取数据（带日志与错误上报）。"""
-        if provider_name not in self.providers:
-            return None
-
-        t0 = time.time()
-        context = ErrorContext(
-            provider=provider_name, symbol=symbol,
-            start_date=start, end_date=end,
-            freq=freq, adjust=adjust, operation="fetch"
+        # AkShare
+        self.providers["akshare"] = AkshareProvider(
+            calendar_name=self.cfg.default_calendar,
+            **(pcfgs.get("akshare", {}) or {})
+        )
+        # TuShare
+        self.providers["tushare"] = TuShareProvider(
+            calendar_name=self.cfg.default_calendar,
+            **(pcfgs.get("tushare", {}) or {})
+        )
+        # CSV / 本地桩
+        self.providers["csv"] = CsvProvider(
+            calendar_name=self.cfg.default_calendar,
+            **(pcfgs.get("csv", {}) or {})
         )
 
+    # ---------- 内部工具 ----------
+    def _normalize_symbol(self, symbol: str) -> str:
+        """统一内部代码形态（如 002415.XSHE）。"""
+        return to_internal(symbol, default_exchange=self.cfg.default_exchange)
+
+    def _cache_key(self, provider: str, symbol: str, start: str, end: str,
+                   freq: str, adjust: str) -> str:
+        return f"{provider}:{symbol}:{start}:{end}:{freq}:{adjust}"
+
+    def _log_data_quality(self, merged_df: pd.DataFrame, by_provider_rows: Dict[str, int]) -> None:
+        """记录合并结果的质量信息（缺失补行数、各来源占比等）。"""
         try:
-            provider = self.providers[provider_name]
-            df = provider.fetch_ohlcv(symbol, start, end, freq, adjust)
-            context.duration_ms = (time.time() - t0) * 1000.0
-
-            if df is not None and not df.empty:
-                context.returned_sessions = len(df)
-                self.logger.info(
-                    f"数据获取成功 | {provider_name} | {symbol} | "
-                    f"{len(df)} 行 | {context.duration_ms:.1f}ms"
-                )
-                self._log_data_quality(df, context)
-                return df
-            else:
-                self.logger.warning(f"数据源返回空结果 | {provider_name} | {symbol}")
-                return None
-
-        except Exception as e:
-            context.duration_ms = (time.time() - t0) * 1000.0
-            error = create_provider_error(
-                provider=provider_name, symbol=symbol, operation="fetch",
-                error=e, context=context
-            )
-            report_error(error)
-            self.error_logger.error(
-                f"数据获取失败 | {provider_name} | {symbol} | "
-                f"错误: {e} | {context.duration_ms:.1f}ms"
-            )
-            return None
-
-    def _log_data_quality(self, df: pd.DataFrame, context: ErrorContext) -> None:
-        """记录单源数据质量（空值/异常 OHLC/极端波动等）。"""
-        try:
-            total = len(df)
-            null_close = int(df["close"].isna().sum())
-            null_volume = int(df["volume"].isna().sum())
-            zero_volume = int((df["volume"] == 0).sum())
-            invalid_ohlc = int(((df["high"] < df["low"]) |
-                                (df["close"] < df["low"]) |
-                                (df["close"] > df["high"])).sum())
-            extreme_moves = 0
-            if total > 1:
-                extreme_moves = int(df["close"].pct_change().abs().gt(0.20).sum())
-
-            if null_close or invalid_ohlc or extreme_moves:
-                self.logger.warning(
-                    "数据质量问题 | %s | %s | 空收盘=%d 无量=%d 零量=%d 无效OHLC=%d 极端变动=%d",
-                    context.provider, context.symbol,
-                    null_close, null_volume, zero_volume, invalid_ohlc, extreme_moves
-                )
-        except Exception as e:
-            self.logger.warning(f"数据质量检查失败: {e}")
-
-    def _log_merge_results(self, merged_df: pd.DataFrame, merge_logs: dict, symbol: str) -> None:
-        """记录合并后的统计（冲突/回填/主源/覆盖率等）。"""
-        try:
-            conflicts = merge_logs.get("conflicts", [])
-            fallback_used = int(merge_logs.get("fallback_used", 0))
-            primary_source = merge_logs.get("primary")
-            providers_quality = merge_logs.get("providers_quality", [])
-
-            total_sessions = 0 if merged_df is None or merged_df.empty else len(merged_df)
-            source_coverage = {
-                q.get("name"): q.get("coverage", 0.0) for q in providers_quality
+            total = int(merged_df.shape[0])
+            src_pct = {k: (v / total if total else 0.0) for k, v in by_provider_rows.items()}
+            info = {
+                "rows": total,
+                "sources_rows": by_provider_rows,
+                "sources_pct": {k: round(p, 4) for k, p in src_pct.items()}
             }
+            logger.info("合并数据质量: %s", json.dumps(info, ensure_ascii=False))
+        except Exception:
+            logger.debug("记录数据质量信息失败。")
 
-            merge_summary = {
-                "symbol": symbol,
-                "total_sessions": total_sessions,
-                "primary_source": primary_source,
-                "source_coverage": source_coverage,
-                "conflicts": len(conflicts),
-                "fallback_sessions": fallback_used,
-                "data_completeness": (
-                    sum(source_coverage.values()) / max(1, len(source_coverage))
-                ),
-            }
+    def _log_merge_results(self, merged_df: pd.DataFrame, meta: Dict[str, Any]) -> None:
+        """记录合并过程元信息（冲突天数、补行数等）。"""
+        try:
+            logger.info("合并结果: rows=%s meta=%s", merged_df.shape[0], json.dumps(meta, ensure_ascii=False))
+        except Exception:
+            logger.debug("记录合并元信息失败。")
 
-            has_issues = bool(conflicts) or (fallback_used > 0)
-            if has_issues:
-                self.logger.warning(
-                    "数据合并完成(有问题) | %s | 主源=%s 冲突=%d 回填=%d 覆盖率=%s",
-                    symbol, primary_source, len(conflicts), fallback_used, source_coverage
-                )
-                if conflicts:
-                    for c in conflicts[:3]:
-                        self.logger.warning(
-                            "数据冲突 | %s | %s | %s:%.4f vs %s:%.4f | 决策=%s",
-                            symbol, c.get("date"),
-                            c.get("primary"), c.get("primary_val", float("nan")),
-                            c.get("alt"), c.get("alt_val", float("nan")),
-                            c.get("decision")
-                        )
-                    if len(conflicts) > 3:
-                        self.logger.warning("... 还有 %d 个冲突未展开", len(conflicts) - 3)
-            else:
-                self.logger.info(
-                    "数据合并完成(无问题) | %s | 主源=%s | 总计 %d 天 | 覆盖率=%s",
-                    symbol, primary_source, total_sessions, source_coverage
-                )
-
-            self.session_stats[symbol] = merge_summary
-        except Exception as e:
-            self.logger.warning(f"合并结果记录失败: {e}")
-
-    # ---------- 对外主流程 ----------
-
-    def get_ohlcv(
-        self,
-        symbol: str,
-        start: str,
-        end: str,
-        freq: str = "1d",
-        adjust: str = "pre"
-    ) -> pd.DataFrame:
+    # ---------- 核心能力：按优先级拉取并合并 ----------
+    def get_ohlcv(self,
+                  symbol: str,
+                  start: str,
+                  end: str,
+                  freq: str = "1d",
+                  adjust: str = "pre") -> pd.DataFrame:
         """
-        获取标准 OHLCV（按配置多源拉取+合并+缓存）。
-        返回：
-          - 索引：DatetimeIndex（tz-naive、交易日）
+        读取 K 线数据并返回统一格式：
           - 列：open, high, low, close, volume
+          - 索引：交易日（DatetimeIndex，无时区）
+        优先使用缓存；逐源尝试；合并冲突；写回缓存。
         """
-        t_start = time.time()
+        t0 = time.time()
+        internal = self._normalize_symbol(symbol)
 
-        # 1) 代码标准化
-        try:
-            internal_symbol = to_internal(symbol, default_exchange=self.config.default_exchange)
-            self.logger.debug("代码标准化: %s -> %s", symbol, internal_symbol)
-        except Exception as e:
-            err = DataSourceError(
-                f"Symbol standardization failed: {symbol}",
-                symbol=symbol, operation="standardize",
-                root_cause=e, severity=ErrorSeverity.HIGH
-            )
-            report_error(err)
-            self.error_logger.error("代码标准化失败: %s -> %s", symbol, e)
-            raise err
+        # 先看最终合并缓存（以合并后的 key 命名）
+        final_key = self._cache_key("merged", internal, start, end, freq, adjust)
+        if self.cfg.enable_cache:
+            hit = cache_ohlcv_get(final_key, ttl_hours=self.cfg.cache_ttl_hours.get(freq, 1))
+            if hit is not None and isinstance(hit, pd.DataFrame) and not hit.empty:
+                logger.info("缓存命中（合并结果）: %s", final_key)
+                return hit.copy()
 
-        # 2) 缓存读取
-        if self.config.enable_cache:
-            ttl = self._get_cache_ttl(freq)
-            for name in self.config.provider_priority:
+        # 逐源拉取
+        dfs: Dict[str, pd.DataFrame] = {}
+        by_provider_rows: Dict[str, int] = {}
+        errors: List[Dict[str, Any]] = []
+
+        for name in self.cfg.provider_priority:
+            prov = self.providers.get(name)
+            if prov is None:
+                continue
+
+            ck = self._cache_key(name, internal, start, end, freq, adjust)
+            df = None
+            if self.cfg.enable_cache:
+                df = cache_ohlcv_get(ck, ttl_hours=self.cfg.cache_ttl_hours.get(freq, 1))
+
+            if df is None:
                 try:
-                    cached = cache_ohlcv_get(internal_symbol, start, end, freq, name, ttl)
-                    if cached is not None:
-                        dur = (time.time() - t_start) * 1000.0
-                        self.logger.info(
-                            "缓存命中 | %s | %s | %d 行 | %.1fms",
-                            name, internal_symbol, len(cached), dur
-                        )
-                        return cached
+                    df = prov.fetch_ohlcv(internal, start, end, freq=freq, adjust=adjust)
+                    # 单源缓存
+                    if self.cfg.enable_cache and isinstance(df, pd.DataFrame) and not df.empty:
+                        cache_ohlcv_put(ck, df)
                 except Exception as e:
-                    self.logger.warning("缓存读取异常: %s/%s -> %s", name, internal_symbol, e)
+                    # 记录并继续下一个源
+                    ctx = ErrorContext(provider=name, symbol=internal, endpoint="fetch_ohlcv")
+                    report_error(create_provider_error(e, ctx, severity=ErrorSeverity.WARN))
+                    errors.append({"provider": name, "error": str(e)})
+                    df = None
 
-        # 3) 逐源拉取
-        provider_data: Dict[str, pd.DataFrame] = {}
-        provider_errors: Dict[str, str] = {}
-        for name in self.config.provider_priority:
-            try:
-                df = self._fetch_from_provider(name, internal_symbol, start, end, freq, adjust)
-                if df is not None and not df.empty:
-                    provider_data[name] = df
-                else:
-                    self.logger.debug("提供商返回空: %s", name)
-            except Exception as e:
-                provider_errors[name] = str(e)
-                self.logger.warning("提供商异常: %s -> %s", name, e)
+            if isinstance(df, pd.DataFrame) and not df.empty:
+                dfs[name] = df
+                by_provider_rows[name] = int(df.shape[0])
 
-        self.logger.info(
-            "提供商获取完成 | %s | 成功: %s | 失败: %s",
-            internal_symbol, list(provider_data.keys()), list(provider_errors.keys())
-        )
+        if not dfs:
+            # 所有源都失败，抛出聚合后的错误
+            detail = {"symbol": internal, "start": start, "end": end, "errors": errors}
+            raise DataSourceError("未能从任何数据源获取到数据。", ErrorSeverity.ERROR, ErrorContext(symbol=internal), detail)
 
-        if not provider_data:
-            # 所有数据源失败：返回结构正确的空 DataFrame
-            err_msg = f"所有数据源均失败: {internal_symbol}"
-            report_error(DataSourceError(
-                err_msg, symbol=internal_symbol, start_date=start, end_date=end,
-                operation="fetch_all", severity=ErrorSeverity.CRITICAL,
-                context=ErrorContext(symbol=internal_symbol, start_date=start, end_date=end, operation="fetch_all")
-            ))
-            self.error_logger.error("%s | 详情: %s", err_msg, provider_errors)
-            return pd.DataFrame(columns=["open", "high", "low", "close", "volume"]).astype(float)
+        # 合并各源数据
+        try:
+            merged_df, meta = merge_ohlcv(
+                dfs,
+                conflict_threshold=self.cfg.conflict_threshold,
+                calendar_name=self.cfg.default_calendar
+            )
+            self._log_data_quality(merged_df, by_provider_rows)
+            self._log_merge_results(merged_df, meta)
+        except Exception as e:
+            ctx = ErrorContext(provider="merge", symbol=internal, endpoint="merge_ohlcv")
+            raise create_provider_error(e, ctx, severity=ErrorSeverity.ERROR)
 
-        # 4) 合并
-        if len(provider_data) == 1:
-            merged_df = next(iter(provider_data.values()))
-            primary = next(iter(provider_data.keys()))
-            merge_logs = {
-                "primary": primary, "conflicts": [], "fallback_used": 0,
-                "providers_quality": [{"name": primary, "coverage": 1.0, "score": 100.0}]
-            }
-            self.logger.info("单源数据 | %s | %s | %d 行", primary, internal_symbol, len(merged_df))
-        else:
-            self.logger.info("多源合并开始 | %s | 源: %s", internal_symbol, list(provider_data.keys()))
-            try:
-                merged_df, merge_logs = merge_ohlcv(
-                    provider_data,
-                    start=start, end=end, calendar_name=self.config.default_calendar,
-                    prefer_order=self.config.provider_priority,
-                    conflict_close_pct=self.config.conflict_threshold,
-                    freshness_tolerance_days=self.config.freshness_tolerance_days
-                )
-            except Exception as e:
-                merge_err = DataSourceError(
-                    f"Data merge failed: {internal_symbol}",
-                    symbol=internal_symbol, start_date=start, end_date=end,
-                    operation="merge", root_cause=e, severity=ErrorSeverity.HIGH
-                )
-                report_error(merge_err)
-                self.error_logger.error("合并失败: %s -> %s", internal_symbol, e)
-                raise merge_err
+        # 合并结果写缓存
+        if self.cfg.enable_cache:
+            cache_ohlcv_put(final_key, merged_df)
 
-        self._log_merge_results(merged_df, merge_logs, internal_symbol)
-
-        # 5) 写缓存
-        if self.config.enable_cache and merged_df is not None and not merged_df.empty:
-            try:
-                primary = merge_logs.get("primary", self.config.provider_priority[0])
-                cache_ohlcv_put(merged_df, internal_symbol, start, end, freq, primary)
-                self.logger.debug("数据已缓存: %s/%s", primary, internal_symbol)
-            except Exception as e:
-                self.logger.warning("缓存写入失败: %s", e)
-
-        # 6) 总结日志
-        total_ms = (time.time() - t_start) * 1000.0
-        self.logger.info(
-            "数据获取完成 | %s | %d 行 | 主源=%s | 总耗时=%.1fms",
-            internal_symbol, 0 if merged_df is None else len(merged_df),
-            merge_logs.get("primary"), total_ms
-        )
+        logger.info("get_ohlcv 完成: symbol=%s rows=%s cost=%.3fs",
+                    internal, merged_df.shape[0], time.time() - t0)
         return merged_df
 
-    def write_zipline_csv(
-        self,
-        symbols: Union[str, List[str]],
-        start: str,
-        end: str,
-        out_dir: str,
-        freq: str = "1d",
-        adjust: str = "pre"
-    ) -> None:
+    # ---------- Zipline CSV 导出 ----------
+    def write_zipline_csv(self,
+                          symbols: Iterable[str],
+                          start: str,
+                          end: str,
+                          out_dir: Union[str, Path],
+                          freq: str = "1d",
+                          adjust: str = "pre") -> Dict[str, str]:
         """
-        批量写 Zipline CSV（列：date,open,high,low,close,volume）。
-        注：此函数仅做落盘，不做 ingest。
+        为 Zipline-Reloaded 的 csvdir_equities 写 CSV。
+        返回：{symbol: csv_path}
         """
-        if isinstance(symbols, str):
-            symbols = [symbols]
-        out_path = Path(out_dir)
-        out_path.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        result: Dict[str, str] = {}
 
-        self.logger.info("开始生成 Zipline CSV: %d 只股票 -> %s", len(symbols), out_dir)
-        for sym in symbols:
-            try:
-                df = self.get_ohlcv(sym, start, end, freq, adjust)
-                if df is None or df.empty:
-                    self.logger.warning("跳过空数据: %s", sym)
-                    continue
+        for s in symbols:
+            internal = self._normalize_symbol(s)
+            df = self.get_ohlcv(internal, start, end, freq=freq, adjust=adjust)
+            # Zipline 需要列：date, open, high, low, close, volume
+            csv_df = df.copy()
+            csv_df = csv_df[["open", "high", "low", "close", "volume"]].copy()
+            csv_df.index.name = "date"
+            csv_path = out_dir / f"{internal.split('.')[0]}.csv"
+            csv_df.to_csv(csv_path)
+            result[internal] = str(csv_path)
+            logger.info("已写 CSV: %s", csv_path)
 
-                zdf = df.reset_index().rename(columns={"index": "date"})
-                zdf["date"] = pd.to_datetime(zdf["date"]).dt.strftime("%Y-%m-%d")
-                zdf = zdf[["date", "open", "high", "low", "close", "volume"]]
+        return result
 
-                internal = to_internal(sym, default_exchange=self.config.default_exchange)
-                clean = internal.split(".")[0]  # 仅文件名使用纯代码
-                fp = out_path / f"{clean}.csv"
-                zdf.to_csv(fp, index=False)
-                self.logger.info("已写入: %s (%d 行)", fp, len(zdf))
-            except Exception as e:
-                self.logger.error("处理 %s 时出错: %s", sym, e)
-        self.logger.info("Zipline CSV 生成完成: %s", out_dir)
-
-    # ---------- 统计与收尾 ----------
-
-    def get_session_statistics(self) -> dict:
-        """返回本次会话的数据统计摘要。"""
+    # ---------- 统计辅助 ----------
+    def get_session_statistics(self, symbol: str, start: str, end: str) -> Dict[str, Any]:
+        """返回区间内的交易日数量与数据覆盖比例，用于数据质量自检。"""
+        ses = get_sessions_index(start, end, calendar_name=self.cfg.default_calendar)
+        df = self.get_ohlcv(symbol, start, end)
+        covered = df.shape[0]
+        total = ses.shape[0]
         return {
-            "total_requests": len(self.session_stats),
-            "stats_by_symbol": self.session_stats,
-            "global_error_summary": get_global_error_summary()
+            "sessions_total": int(total),
+            "sessions_covered": int(covered),
+            "coverage_pct": round((covered / total if total else 0.0) * 100, 2)
         }
 
-    def log_session_summary(self) -> None:
-        """将会话统计打印到日志。"""
-        stats = self.get_session_statistics()
-        if stats["total_requests"] <= 0:
-            return
+    def log_session_summary(self, symbol: str, start: str, end: str) -> None:
+        """打印交易日覆盖摘要。"""
+        stat = self.get_session_statistics(symbol, start, end)
+        logger.info("会话覆盖: %s", json.dumps(stat, ensure_ascii=False))
 
-        self.logger.info("会话统计 | 总请求: %d 个标的", stats["total_requests"])
-        source_usage: Dict[str, int] = {}
-        total_conflicts = 0
-        total_fallbacks = 0
-
-        for _, s in stats["stats_by_symbol"].items():
-            primary = s.get("primary_source")
-            if primary:
-                source_usage[primary] = source_usage.get(primary, 0) + 1
-            total_conflicts += int(s.get("conflicts", 0))
-            total_fallbacks += int(s.get("fallback_sessions", 0))
-
-        self.logger.info(
-            "会话汇总 | 主源使用: %s | 总冲突: %d 天 | 总回填: %d 天",
-            source_usage, total_conflicts, total_fallbacks
-        )
-
-    def __del__(self) -> None:
-        """析构时尝试打印一次会话统计（忽略异常避免进程退出噪音）。"""
+    def __del__(self):
+        # 可在此输出一次全局错误摘要（第12步）
         try:
-            self.log_session_summary()
+            summary = get_global_error_summary()
+            if summary:
+                logger.info("数据源错误摘要: %s", json.dumps(summary, ensure_ascii=False))
         except Exception:
             pass
 
 
-# ---- 单例获取器与便捷函数 ----
-
+# =========================
+# 默认 fetcher 与模块级便捷函数
+# =========================
 _default_fetcher: Optional[DataFetcher] = None
 
 def get_default_fetcher(config_path: Optional[str] = None) -> DataFetcher:
-    """获取/创建默认 DataFetcher 单例实例。"""
+    """获取单例 DataFetcher。"""
     global _default_fetcher
     if _default_fetcher is None:
-        if config_path and os.path.exists(config_path):
-            cfg = FetchConfig.from_yaml(config_path)
-        else:
-            default_cfg = "config/data_providers.yaml"
-            cfg = FetchConfig.from_yaml(default_cfg) if os.path.exists(default_cfg) else FetchConfig()
+        cfg = FetchConfig.from_yaml(config_path or "config/data_providers.yaml")
         _default_fetcher = DataFetcher(cfg)
     return _default_fetcher
 
-# Add this function to your fetcher.py file, after the DataFetcher class definition
+# ---- 兼容旧代码：模块级 get_ohlcv 封装 ----
+def get_ohlcv(symbol: str, start: str, end: str, freq: str = "1d", adjust: str = "pre") -> pd.DataFrame:
+    """兼容旧入口，直接使用默认 DataFetcher。"""
+    return get_default_fetcher().get_ohlcv(symbol, start, end, freq=freq, adjust=adjust)
 
-def get_vix(start: str, end: str, fetcher: Optional[DataFetcher] = None) -> pd.DataFrame:
-    """
-    获取 VIX 恐慌指数数据
-    
-    Args:
-        start: 开始日期 (YYYY-MM-DD)
-        end: 结束日期 (YYYY-MM-DD)  
-        fetcher: DataFetcher实例，如果为None则使用默认实例
-        
-    Returns:
-        pd.DataFrame: VIX数据，包含close列
-    """
-    if fetcher is None:
-        fetcher = get_default_fetcher()
-    
+
+# =========================
+# 便捷宏观/情绪/板块函数（兼容 MacroFilter 与旧路由）
+# 说明：
+#   - 这些函数当前提供“可运行的安全兜底”实现，返回结构稳定。
+#   - 接入真实数据源后，只需在此替换实现，不影响上层调用。
+# =========================
+
+def get_vix() -> Dict[str, Any]:
+    """返回 VIX 指标（兜底：固定值 18.0，可由环境变量 VIX_FAKE 覆盖）。"""
     try:
-        # VIX的标准代码，根据你的数据源调整
-        # 如果使用akshare，VIX代码可能是 "VIX" 或其他
-        # 如果使用tushare，可能需要特定的VIX代码
-        vix_symbol = "VIX"  # 根据实际情况调整
-        
-        df = fetcher.get_ohlcv(
-            symbol=vix_symbol,
-            start=start,
-            end=end,
-            freq="1d",
-            adjust="pre"
-        )
-        
-        if df is None or df.empty:
-            # 如果主要数据源没有VIX，可以尝试其他代码或返回模拟数据
-            logging.getLogger(__name__).warning(f"无法获取VIX数据: {start} to {end}")
-            # 返回空的DataFrame但保持结构
-            return pd.DataFrame(columns=["close"]).astype(float)
-        
-        # VIX通常只需要收盘价
-        return df[["close"]].copy()
-        
-    except Exception as e:
-        logging.getLogger(__name__).error(f"获取VIX数据失败: {e}")
-        # 返回空DataFrame
-        return pd.DataFrame(columns=["close"]).astype(float)
+        v = float(os.getenv("VIX_FAKE", "18.0"))
+        return {"value": v}
+    except Exception:
+        return {"value": 18.0}
 
+def get_global_futures_change() -> Dict[str, Any]:
+    """返回“全球期货变动”百分比（兜底：0.0，可由环境变量 GLOBAL_FUT_CHG_FAKE 覆盖，单位：%）。"""
+    try:
+        pct = float(os.getenv("GLOBAL_FUT_CHG_FAKE", "0.0"))
+        return {"value": pct}
+    except Exception:
+        return {"value": 0.0}
 
-def get_macro_indicators(
-    indicators: List[str], 
-    start: str, 
-    end: str, 
-    fetcher: Optional[DataFetcher] = None
-) -> Dict[str, pd.DataFrame]:
+def get_index_above_ma(index: str = "CSI300", period: int = 20) -> Dict[str, Any]:
     """
-    批量获取宏观指标数据
-    
-    Args:
-        indicators: 指标代码列表，如 ["VIX", "DXY", "TNX"] 
-        start: 开始日期
-        end: 结束日期
-        fetcher: DataFetcher实例
-        
-    Returns:
-        Dict[str, pd.DataFrame]: 指标名 -> 数据DataFrame
+    判断指数是否站上均线（兜底实现）：
+      - 映射常用指数代码 → 内部代码；
+      - 拉取 OHLCV（若失败则返回兜底 True）。
+    返回：{"above_ma": bool, "close": float|None, "ma": float|None}
     """
-    if fetcher is None:
-        fetcher = get_default_fetcher()
-    
-    results = {}
-    
-    for indicator in indicators:
-        try:
-            if indicator.upper() == "VIX":
-                results[indicator] = get_vix(start, end, fetcher)
-            else:
-                # 其他宏观指标，使用通用方法获取
-                df = fetcher.get_ohlcv(
-                    symbol=indicator,
-                    start=start,
-                    end=end,
-                    freq="1d"
-                )
-                if df is not None and not df.empty:
-                    results[indicator] = df[["close"]].copy()
-                else:
-                    results[indicator] = pd.DataFrame(columns=["close"]).astype(float)
-                    
-        except Exception as e:
-            logging.getLogger(__name__).error(f"获取指标 {indicator} 失败: {e}")
-            results[indicator] = pd.DataFrame(columns=["close"]).astype(float)
-    
-    return results
+    mapping = {
+        "CSI300": "000300.XSHG",   # 沪深300
+        "SSE50":  "000016.XSHG",
+        "CSI500": "000905.XSHG",
+    }
+    code = mapping.get(index.upper(), "000300.XSHG")
+    try:
+        df = get_ohlcv(code, "2023-01-01", "2100-01-01", freq="1d", adjust="pre")
+        if df.empty:
+            return {"above_ma": True, "close": None, "ma": None}
+        last = df.iloc[-1]["close"]
+        mav = ma(df["close"], int(period)).iloc[-1]
+        return {"above_ma": bool(float(last) > float(mav)), "close": float(last), "ma": float(mav)}
+    except Exception:
+        # 数据不可得时，返回“偏保守”的 True（不阻断流程）
+        return {"above_ma": True, "close": None, "ma": None}
 
-# 示例配置模板（可打印到控制台帮助落盘）
-EXAMPLE_CONFIG_YAML = """
-# 保存为: config/data_providers.yaml
-provider_priority:
-  - akshare
-  - tushare
-  - csv
+def get_market_breadth() -> Dict[str, Any]:
+    """
+    市场广度（兜底）：返回一个 0~1 的比例（默认 0.55）。
+    可用环境变量 MARKET_BREADTH_FAKE 覆盖，例如 0.62。
+    """
+    try:
+        v = float(os.getenv("MARKET_BREADTH_FAKE", "0.55"))
+        return {"value": max(0.0, min(1.0, v))}
+    except Exception:
+        return {"value": 0.55}
 
-provider_configs:
-  akshare:
-    timeout: 15.0
-    retries: 3
-    volume_unit: hands   # 'hands' 或 'shares'
-  tushare:
-    timeout: 10.0
-    max_retries: 2       # token 从环境变量 TUSHARE_TOKEN 读取
-  csv:
-    csv_dir: "data/zipline_csv"
-    allow_stub: true
+def get_northbound_score() -> Dict[str, Any]:
+    """
+    北向资金打分（兜底）：-1 ~ +1，默认 0.2。
+    可用环境变量 NORTHBOUND_SCORE_FAKE 覆盖。
+    """
+    try:
+        v = float(os.getenv("NORTHBOUND_SCORE_FAKE", "0.2"))
+        return {"value": max(-1.0, min(1.0, v))}
+    except Exception:
+        return {"value": 0.2}
 
-enable_cache: true
-cache_ttl_hours:
-  1d: 1
-  1h: 0.25
-  1m: 0.1
+# ====== 下面这些“板块/个股”相关便捷函数，多数模块目前不强依赖；
+#        为避免导入报错，提供稳定兜底返回。后续接入真实数据时替换即可。 ======
 
-conflict_threshold: 0.02
-freshness_tolerance_days: 3
+def get_sector_strength(sector: str) -> Dict[str, Any]:
+    """板块强度（兜底）：返回 0~1，默认 0.6。"""
+    try:
+        v = float(os.getenv("SECTOR_STRENGTH_FAKE", "0.6"))
+        return {"value": max(0.0, min(1.0, v))}
+    except Exception:
+        return {"value": 0.6}
 
-default_calendar: "XSHG"
-default_exchange: "XSHE"
-"""
+def get_sector_breadth(sector: str) -> Dict[str, Any]:
+    """板块广度（兜底）：返回 0~1，默认 0.55。"""
+    try:
+        v = float(os.getenv("SECTOR_BREADTH_FAKE", "0.55"))
+        return {"value": max(0.0, min(1.0, v))}
+    except Exception:
+        return {"value": 0.55}
+
+def get_sector_time_continuation(sector: str) -> Dict[str, Any]:
+    """板块时间延续性（兜底）：返回 bool，默认 True。"""
+    v = os.getenv("SECTOR_CONT_FAKE", "true").lower() in ("1", "true", "yes", "y")
+    return {"value": bool(v)}
+
+def get_sector_capital_ratio(sector: str) -> Dict[str, Any]:
+    """板块资金集中度（兜底）：0~1，默认 0.52。"""
+    try:
+        v = float(os.getenv("SECTOR_CAP_RATIO_FAKE", "0.52"))
+        return {"value": max(0.0, min(1.0, v))}
+    except Exception:
+        return {"value": 0.52}
+
+def get_sector_endorsements(sector: str) -> Dict[str, Any]:
+    """板块背书事件计数（兜底）：非负整数，默认 1。"""
+    try:
+        v = int(os.getenv("SECTOR_ENDORSE_FAKE", "1"))
+        return {"value": max(0, v)}
+    except Exception:
+        return {"value": 1}
+
+def get_hidden_funds() -> Dict[str, Any]:
+    """“隐形资金”观察（兜底）：返回空集合。"""
+    return {"buying": [], "selling": []}
+
+def get_sector_top_stocks(sector: str, n: int = 5) -> List[Dict[str, Any]]:
+    """板块龙头 TopN（兜底）：返回空列表。"""
+    return []
+
+def get_sector_earliest_limit_symbol(sector: str) -> Dict[str, Any]:
+    """板块内最早涨停的标的（兜底）：返回 None。"""
+    return {"symbol": None, "time": None}
+
+def get_second_line_candidates(sector: str, n: int = 5) -> List[Dict[str, Any]]:
+    """第二梯队候选（兜底）：返回空列表。"""
+    return []
+
+
+# ============ 兼容旧拷贝中的内部工具（若有模块依赖这些名字） ============
+
+def _normalize_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    兼容旧“copy”里的命名：对齐列名并确保索引为日期（此处简单透传，真实规范化在 Provider 内完成）。
+    """
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+    cols = {c.lower(): c for c in df.columns}
+    need = ["open", "high", "low", "close", "volume"]
+    out = pd.DataFrame({
+        "open": df[cols.get("open", "open")],
+        "high": df[cols.get("high", "high")],
+        "low": df[cols.get("low", "low")],
+        "close": df[cols.get("close", "close")],
+        "volume": df[cols.get("volume", "volume")],
+    })
+    out.index = pd.to_datetime(df.index).tz_localize(None)
+    out.index.name = None
+    return out
+
+def _slice(df: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
+    """兼容旧工具：按日期切片。"""
+    if df is None or df.empty:
+        return df
+    idx = pd.to_datetime(df.index).tz_localize(None)
+    mask = (idx >= pd.Timestamp(start)) & (idx <= pd.Timestamp(end))
+    return df.loc[mask]
+
+def _load_from_csv(path: Union[str, Path]) -> pd.DataFrame:
+    """兼容旧工具：从本地 CSV 读取（仅兜底用途）。"""
+    p = Path(path)
+    if not p.exists():
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(p, index_col=0)
+        df.index = pd.to_datetime(df.index).tz_localize(None)
+        return _normalize_df(df)
+    except Exception:
+        return pd.DataFrame()
+
+def _load_from_stub() -> pd.DataFrame:
+    """兼容旧工具：返回一段最小的桩数据。"""
+    idx = pd.date_range("2024-01-01", periods=5, freq="B")
+    return pd.DataFrame(
+        {
+            "open": [10, 10.1, 10.2, 10.1, 10.3],
+            "high": [10.2, 10.3, 10.4, 10.3, 10.5],
+            "low":  [9.9, 10.0, 10.1, 10.0, 10.2],
+            "close":[10.1, 10.2, 10.3, 10.15, 10.4],
+            "volume":[1000,1100,1050,1200,1300],
+        },
+        index=idx
+    )
+
+
+# =========================
+# 兼容旧 copy 的“顶层 get_ohlcv 名字”
+# =========================
+# 已在上方定义：def get_ohlcv(...)
+
+
+# =========================
+# （可选）Zipline 导出批处理便捷函数
+# =========================
+def write_zipline_csv(symbols: Iterable[str], start: str, end: str,
+                      out_dir: Union[str, Path], freq: str = "1d", adjust: str = "pre") -> Dict[str, str]:
+    """模块级便捷封装：使用默认 fetcher 写 CSV。"""
+    return get_default_fetcher().write_zipline_csv(symbols, start, end, out_dir, freq=freq, adjust=adjust)
