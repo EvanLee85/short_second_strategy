@@ -245,7 +245,31 @@ class UnitTests:
         assert cache.get("test_basic") is None, "清理后应该无法获取数据"
         
         print("✓ 数据缓存命中测试通过")
-    
+
+    def facade_output_format_ok(self):
+        """测试数据获取门面的列名标准化"""
+        # 导入在函数内部以避免不必要的依赖
+        from backend.data_fetcher_facade import DataFetcherFacade
+
+        facade = DataFetcherFacade(enable_new_fetcher=False, fallback_to_csv=False)
+
+        raw = pd.DataFrame({
+            'datetime': [datetime(2024, 1, 1)],
+            'open': [1.1],
+            'high': [1.2],
+            'low': [1.0],
+            'adj_close': [1.1],
+            'volume': [100]
+        })
+
+        formatted = facade._normalize_output_format(raw)
+
+        assert 'date' in formatted.columns, "datetime 应映射为 date"
+        assert 'close' in formatted.columns, "adj_close 应映射为 close"
+        assert formatted.loc[0, 'close'] == raw.loc[0, 'adj_close'], "close 值应来源于 adj_close"
+
+        print("✓ 门面列名标准化测试通过")
+
     def run_all_unit_tests(self):
         """运行所有单元测试"""
         print("运行单元测试...")
@@ -254,7 +278,8 @@ class UnitTests:
             self.normalize_sessions_ok,
             self.adjust_pre_ok,
             self.symbol_map_ok,
-            self.cache_hit_ok
+            self.cache_hit_ok,
+            self.facade_output_format_ok
         ]
         
         for test in tests:

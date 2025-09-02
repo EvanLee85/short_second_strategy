@@ -62,7 +62,7 @@ python -m tests.run_tests
 
 | 测试名称 | 目的 | 关键验证点 |
 |---------|------|-----------|
-| `akshare_fetch_ok` | Akshare数据获取 | API调用、数据格式 |
+| `akshare_fetch_ok` | AkShare数据获取 | API调用、数据格式 |
 | `tushare_fetch_ok` | Tushare数据获取 | 配额管理、数据质量 |
 | `merge_fallback_ok` | 数据源合并回退 | 优先级处理、数据完整性 |
 | `zipline_ingest_ok` | Zipline数据摄入 | 格式转换、数据验证 |
@@ -521,7 +521,7 @@ unit_tests.py - 单元测试模块
 
 integration_tests.py - 集成测试模块
 
-✅ akshare_fetch_ok - Akshare数据获取测试
+✅ akshare_fetch_ok - AkShare数据获取测试
 ✅ tushare_fetch_ok - Tushare数据获取测试
 ✅ merge_fallback_ok - 数据源合并回退测试
 ✅ zipline_ingest_ok - Zipline数据摄入测试

@@ -276,8 +276,10 @@ class DataFetcherFacade:
         result = data.copy()
         
         # 应用列名映射
-        reverse_mapping = {v: k for k, v in self._column_mapping.items()}
-        result = result.rename(columns=reverse_mapping)
+        # _column_mapping 保存的是新接口列名到旧接口列名的映射
+        # 在标准化输出时需要将新列名转换为旧列名，
+        # 因此直接使用该映射而不是反向映射
+        result = result.rename(columns=self._column_mapping)
         
         # 确保必要列存在
         required_columns = ['open', 'high', 'low', 'close', 'volume']
