@@ -1,51 +1,87 @@
 // frontend/js/app.js
-// 说明：页面级入口。自动做健康检查，并把结果渲染到卡片；提供“重新检测”按钮（若页面里有该按钮）。
+// 应用入口与简单路由控制。
+// 负责根据 hash 路由加载相应页面模块，并渲染到 #app 容器。
 
-import { getHealth } from './api/endpoints.js?v=20250901'; // 带版本参数避免浏览器缓存旧文件
+import MacroPage from './pages/MacroPage.js';
+import SectorsPage from './pages/SectorsPage.js';
+import LeadersPage from './pages/LeadersPage.js';
+import SignalPage from './pages/SignalPage.js';
+import RiskPage from './pages/RiskPage.js';
+import PaperPage from './pages/PaperPage.js';
+import HealthPage from './pages/HealthPage.js';
 
-function qs(sel) { return document.querySelector(sel); }
-function renderJSON(el, data) {
-  try { el.textContent = JSON.stringify(data, null, 2); }
-  catch { el.textContent = String(data); }
+/**
+ * 简易路由表：根据 URL hash 映射到页面对象。
+ * 每个页面对象定义 route、title 和 render() 方法。
+ */
+const routes = {
+  '/health': HealthPage,
+  '/macro': MacroPage,
+  '/sectors': SectorsPage,
+  '/leaders': LeadersPage,
+  '/signal': SignalPage,
+  '/risk': RiskPage,
+  '/paper': PaperPage,
+};
+
+/**
+ * 根据当前 location.hash 解析路由路径。
+ * 默认路由为 '/health'。
+ */
+function getCurrentRoute() {
+  const hash = window.location.hash || '';
+  const match = hash.match(/^#(\/[^?]*)/);
+  return (match && match[1]) || '/health';
 }
 
-async function runHealth() {
-  const statusEl  = qs('#health-status');
-  const delayEl   = qs('#health-latency');
-  const jsonEl    = qs('#health-json');
-  const cardEl    = qs('#health-card'); // 若没有此元素，下面的 classList.toggle 会安全忽略
+/**
+ * 更新导航栏 active 状态。
+ * 根据当前路由为 nav a 标签添加或移除 'active' class。
+ */
+function updateNavActive(current) {
+  const navLinks = document.querySelectorAll('header.nav a, header .nav a');
+  navLinks.forEach((a) => {
+    const href = a.getAttribute('href') || '';
+    const route = href.replace(/^#/, '');
+    a.classList.toggle('active', route === current);
+  });
+}
 
-  // 初始化占位
-  if (statusEl) statusEl.textContent = '...';
-  if (delayEl)  delayEl.textContent  = '...';
-  if (jsonEl)   jsonEl.textContent   = '';
-
-  const t0 = performance.now();
-  let res;
-  try {
-    res = await getHealth();
-  } catch (err) {
-    // 网络或 JS 异常
-    if (statusEl) statusEl.textContent = 'fail';
-    if (delayEl)  delayEl.textContent  = '-';
-    if (jsonEl)   renderJSON(jsonEl, String(err));
-    if (cardEl)   cardEl.classList.add('error');
-    return;
+/**
+ * 主渲染函数：加载并渲染当前路由对应页面。
+ * 该函数在 hashchange 和 DOMContentLoaded 事件触发时调用。
+ */
+export function render() {
+  const route = getCurrentRoute();
+  const page = routes[route] || routes['/health'];
+  // 更新文档标题
+  if (page.title) {
+    document.title = page.title + ' - short_second_strategy 控制台';
   }
-
-  const dt = Math.round(performance.now() - t0);
-  const ok = !!(res && res.ok);
-
-  if (statusEl) statusEl.textContent = ok ? 'ok' : 'fail';
-  if (delayEl)  delayEl.textContent  = `${dt}ms`;
-  if (jsonEl)   renderJSON(jsonEl, ok ? (res.data ?? {}) : (res.error ?? res));
-
-  if (cardEl) cardEl.classList.toggle('error', !ok);
+  // 更新导航 active
+  updateNavActive(route);
+  // 渲染页面内容
+  const appEl = document.getElementById('app');
+  if (!appEl) return;
+  // 清空容器
+  appEl.innerHTML = '';
+  try {
+    const view = page.render();
+    if (view instanceof Node) {
+      appEl.appendChild(view);
+    }
+  } catch (err) {
+    // 渲染异常：显示错误信息
+    const errBox = document.createElement('pre');
+    errBox.className = 'card';
+    errBox.style.color = 'red';
+    errBox.textContent = `渲染页面时发生错误：${err.message || err}`;
+    appEl.appendChild(errBox);
+    console.error(err);
+  }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  runHealth(); // 页面加载即自检
-
-  const retryBtn = qs('#btn-health-test'); // 若页面有“重新检测”按钮则绑定
-  if (retryBtn) retryBtn.addEventListener('click', () => runHealth());
-});
+// 默认导出一个 init 函数（可选）
+export default function init() {
+  render();
+}

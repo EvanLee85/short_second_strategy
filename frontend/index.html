@@ -1,102 +1,31 @@
-<!doctype html>
-<html lang="zh-CN">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <!-- ★ 后端 API 根地址：如需不同环境可改这里 -->
-  <meta name="api-base" content="http://127.0.0.1:5000">
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>short_second_strategy 控制台</title>
-
-  <!-- 样式（保持你现有的目录结构） -->
-  <link rel="stylesheet" href="./css/base.css" />
-  <link rel="stylesheet" href="./css/components.css" />
-  <link rel="stylesheet" href="./css/pages.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- 顶部导航 -->
-  <header class="topbar">
-    <div class="brand">
-      <img src="./assets/logo.svg" alt="logo" onerror="this.style.display='none'">
-      <span>Short Second Strategy 控制台</span>
+  <div id="app">
+    <button id="check-health-btn">Check Backend Health</button>
+    <div id="health-status">
+      <h3>Backend Health:</h3>
+      <p id="health-text">Waiting for status...</p>
     </div>
-    <nav class="nav">
-      <!-- 简单 hash 路由占位 -->
-      <a href="#/health">健康</a>
-      <a href="#/macro">宏观</a>
-      <a href="#/sectors">轮动</a>
-      <a href="#/leaders">龙头</a>
-      <a href="#/signal">信号</a>
-      <a href="#/risk">风控</a>
-      <a href="#/paper">纸上交易</a>
-    </nav>
-  </header>
+  </div>
 
-  <!-- 页面容器（路由挂载点） -->
-  <main id="app" class="app-container">
-
-    <!-- ========== 快捷健康检查（无需懂 JS，也不依赖控制台） ========== -->
-    <section class="card" style="max-width:760px;margin:24px auto;">
-      <h2 style="margin:0 0 8px;">后端健康自检</h2>
-      <p style="margin:0 0 12px;color:#666;">
-        点击下方按钮，调用 <code>/api/v1/health</code>。结果会显示在本卡片中。
-      </p>
-
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
-        <button id="btn-health" class="btn primary">检查后端</button>
-        <span id="quick-health" aria-live="polite" style="color:#333;"></span>
-      </div>
-
-      <details style="background:#fafafa;border:1px solid #eee;border-radius:8px;padding:12px;">
-        <summary style="cursor:pointer;">返回原始 JSON</summary>
-        <pre id="health-json" style="white-space:pre-wrap;margin:8px 0 0;"></pre>
-      </details>
-    </section>
-    <!-- =========================================================== -->
-
-  </main>
-
-  <!-- 底部信息 -->
-  <footer class="footer">
-    <span>© 2025 short_second_strategy</span>
-  </footer>
-
-  <!-- 入口脚本（如你已有路由/页面渲染，可继续保留） -->
-  <script type="module" src="./js/runtime.js"></script>
-  <!-- ⚠️ 仅保留一次 app.js 引入 -->
-  <script type="module" src="./js/app.js"></script>
-
-  <!-- 轻量内联模块：只负责“健康检查”按钮，不影响你现有前端结构 -->
-  <script type="module">
-    // 中文注释：从 endpoints.js 引入健康检查函数
-    import { getHealth } from './js/api/endpoints.js';
-
-    const btn   = document.getElementById('btn-health');
-    const stat  = document.getElementById('quick-health');
-    const preEl = document.getElementById('health-json');
-
-    // 中文注释：点击执行健康检查，并把结果渲染到页面上
-    btn?.addEventListener('click', async () => {
-      stat.textContent = '检查中…';
-      preEl.textContent = '';
-
+  <script src="js/api/http.js"></script>
+  <script src="js/core/events.js"></script>
+  <script>
+    document.getElementById('check-health-btn').addEventListener('click', async () => {
       try {
-        const res = await getHealth(); // 统一返回 { ok, data, error }
-        if (res.ok) {
-          stat.textContent = '✅ 后端在线';
-          preEl.textContent = JSON.stringify(res.data, null, 2);
-        } else {
-          stat.textContent = '❌ 检查失败';
-          preEl.textContent = JSON.stringify({ error: res.error }, null, 2);
-        }
-      } catch (err) {
-        stat.textContent = '❌ 请求异常';
-        preEl.textContent = String(err && err.message ? err.message : err);
+        const healthStatus = await api.getHealth();
+        document.getElementById('health-text').textContent = `Backend is ${healthStatus.status}`;
+      } catch (error) {
+        console.error('Error fetching health status:', error);
+        document.getElementById('health-text').textContent = 'Error fetching health status';
       }
-    });
-
-    // 中文注释：页面加载后自动尝试一次，便于你一打开页面就看到状态
-    window.addEventListener('DOMContentLoaded', () => {
-      btn?.click();
     });
   </script>
 </body>

@@ -1,8 +1,14 @@
 # 自动生成：仅启用 CSV Provider 的最小配置
 provider_priority:
+  - akshare
   - csv
 
 provider_configs:
+  akshare:
+    enable_retry: true
+    enable_rate_limit: true
+    rate_limit_per_minute: 60   # 每分钟最大请求数，可根据网络情况调整
+    timeout: 15                 # 单次请求超时（秒）
   csv:
     csv_dir: "/home/evan/short_second_strategy/data/zipline_csv"
     allow_stub: false

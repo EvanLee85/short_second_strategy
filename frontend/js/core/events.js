@@ -1,16 +1,21 @@
-// 事件总线（发布订阅）
-const listeners = new Map();
+// js/core/events.js
 
-export function on(evt, fn) {
-  if (!listeners.has(evt)) listeners.set(evt, new Set());
-  listeners.get(evt).add(fn);
-  return () => off(evt, fn);
+export const EV = {
+  MACRO_UPDATED: 'macroUpdated',
+  PAPER_UPDATED: 'paperUpdated',
+  SECTOR_UPDATED: 'sectorUpdated',
+  LEADERS_UPDATED: 'leadersUpdated',
+  SIGNAL_UPDATED: 'signalUpdated',
+  RISK_UPDATED: 'riskUpdated',
+};
+
+// 发布事件
+export function publish(event, data) {
+  const eventObj = new CustomEvent(event, { detail: data });
+  window.dispatchEvent(eventObj);
 }
-export function off(evt, fn) {
-  const set = listeners.get(evt); if (!set) return;
-  set.delete(fn);
-}
-export function emit(evt, payload) {
-  const set = listeners.get(evt); if (!set) return;
-  for (const fn of set) try { fn(payload); } catch (e) { console.error(e); }
+
+// 订阅事件
+export function subscribe(event, callback) {
+  window.addEventListener(event, (e) => callback(e.detail));
 }

@@ -1,5 +1,12 @@
-// 启动顺序控制：这里挂载路由监听与首次渲染
-import { render } from "./app.js";
+// frontend/js/runtime.js
+// 启动程序：监听 hashchange 和 DOMContentLoaded 事件，调用 app.js 的 render()
 
-window.addEventListener("hashchange", () => render());
-window.addEventListener("DOMContentLoaded", () => render());
+import { render } from './app.js';
+
+window.addEventListener('hashchange', () => {
+  render();
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  render();
+});

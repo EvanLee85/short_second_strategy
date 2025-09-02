@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request
+from datetime import datetime, timedelta
 from backend.core.macro_filter import MacroFilter
 from backend.core.sector_rotation import SectorRotation
 from backend.core.stock_selector import StockSelector
 from backend.core.entry_signals import evaluate_signal, build_trade_plan
 from backend.core.risk_manager import RiskManager
 from backend.core.sentry import MarketSentry
+from backend.data.fetcher import get_ohlcv
 
 api_bp = Blueprint("api", __name__)
 
@@ -39,17 +41,21 @@ def stocks_leaders():
 
 @api_bp.post("/trades/signal")
 def trade_signal():
-    """
-    请求体(JSON)示例：
-    {
-      "symbol": "002415",
-      "mode": "breakout",  // 或 pullback | reversal | follow
-      "intraday": {"first2h_vol_ratio": 0.55, "close_spike_ratio": 0.18},
-      "ohlcv": {"t":[...],"o":[...],"h":[...],"l":[...],"c":[...],"v":[...]} // 可选
-    }
-    若未提供 ohlcv/intraday，则使用后端 Stub 生成，可离线自测。
-    """
     payload = request.get_json(silent=True) or {}
+    symbol = payload.get("symbol")
+    if symbol and not payload.get("ohlcv"):
+        end = datetime.now().strftime("%Y-%m-%d")
+        start = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+        df = get_ohlcv(symbol, start, end)
+        # 将 DataFrame 转换为传给 evaluate_signal 的格式
+        payload["ohlcv"] = {
+            "t": df.index.strftime("%Y-%m-%d").tolist(),
+            "o": df["open"].tolist(),
+            "h": df["high"].tolist(),
+            "l": df["low"].tolist(),
+            "c": df["close"].tolist(),
+            "v": df["volume"].tolist(),
+        }
     return jsonify(evaluate_signal(payload))
 
 @api_bp.post("/risk/evaluate")

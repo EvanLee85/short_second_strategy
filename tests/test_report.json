@@ -1,74 +1,74 @@
 {
-  "timestamp": "2025-08-27T21:23:10.801063",
+  "timestamp": "2025-09-01T22:31:01.806797",
   "summary": {
     "total": 9,
     "passed": 9,
     "failed": 0,
-    "duration": 0.9802489999999999
+    "duration": 1.086995
   },
   "results": [
     {
       "name": "normalize_sessions_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.00382,
-      "timestamp": "2025-08-27T21:23:09.824074"
+      "duration": 0.009027,
+      "timestamp": "2025-09-01T22:31:00.728327"
     },
     {
       "name": "adjust_pre_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.001073,
-      "timestamp": "2025-08-27T21:23:09.825182"
+      "duration": 0.001254,
+      "timestamp": "2025-09-01T22:31:00.729615"
     },
     {
       "name": "symbol_map_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.000269,
-      "timestamp": "2025-08-27T21:23:09.825515"
+      "duration": 0.000254,
+      "timestamp": "2025-09-01T22:31:00.729905"
     },
     {
       "name": "cache_hit_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 9e-05,
-      "timestamp": "2025-08-27T21:23:09.825613"
+      "duration": 8.7e-05,
+      "timestamp": "2025-09-01T22:31:00.730013"
     },
     {
       "name": "akshare_fetch_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.405729,
-      "timestamp": "2025-08-27T21:23:10.231366"
+      "duration": 0.308828,
+      "timestamp": "2025-09-01T22:31:01.038877"
     },
     {
       "name": "tushare_fetch_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.309486,
-      "timestamp": "2025-08-27T21:23:10.540882"
+      "duration": 0.471007,
+      "timestamp": "2025-09-01T22:31:01.509924"
     },
     {
       "name": "merge_fallback_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.001655,
-      "timestamp": "2025-08-27T21:23:10.542593"
+      "duration": 0.00123,
+      "timestamp": "2025-09-01T22:31:01.511187"
     },
     {
       "name": "zipline_ingest_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.10983,
-      "timestamp": "2025-08-27T21:23:10.652478"
+      "duration": 0.103178,
+      "timestamp": "2025-09-01T22:31:01.614413"
     },
     {
       "name": "algo_smoke_ok",
       "passed": true,
       "message": "PASSED",
-      "duration": 0.148297,
-      "timestamp": "2025-08-27T21:23:10.800831"
+      "duration": 0.19213,
+      "timestamp": "2025-09-01T22:31:01.806600"
     }
   ]
 }

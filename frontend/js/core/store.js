@@ -1,11 +1,47 @@
-// 极简全局状态管理（仅占位，后续可扩展持久化/模块化）
-export const store = {
-  state: {
-    // 示例：用户设置、当前路由、最近一次 API 响应等
-    route: "/health",
-    lastError: null,
-    settings: { sector: "AI" },
-  },
-  set(k, v) { this.state[k] = v; },
-  get(k) { return this.state[k]; },
-};
+// js/core/store.js
+
+class Store {
+  constructor() {
+    this.state = {
+      health: null,
+      macro: null,
+      sectors: null,
+      leaders: null,
+      signal: null,
+      risk: null,
+      paperState: null,
+      ui: {
+        route: '',
+        loading: false,
+        toasts: [],
+      }
+    };
+    this.subscribers = {}; // 存储所有订阅事件的回调函数
+  }
+
+  // 设置部分状态并通知订阅者
+  setState(partial) {
+    this.state = { ...this.state, ...partial };  // 更新状态
+    Object.keys(partial).forEach(key => {
+      if (this.subscribers[key]) {
+        this.subscribers[key].forEach(cb => cb(this.state[key]));
+      }
+    });
+  }
+
+  // 订阅某个状态的变化
+  subscribe(key, cb) {
+    if (!this.subscribers[key]) {
+      this.subscribers[key] = [];
+    }
+    this.subscribers[key].push(cb);
+  }
+
+  // 获取状态
+  getState() {
+    return this.state;
+  }
+}
+
+const store = new Store();
+export default store;

@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 import os
-import time
+import time, datetime
 import json
 import logging
 import logging.config
@@ -31,6 +31,11 @@ from typing import Dict, List, Optional, Union, Any, Iterable
 
 import yaml
 import pandas as pd
+
+try:
+    import akshare as ak
+except ImportError:
+    ak = None
 
 # ---- 日志配置 ----
 def setup_logging() -> None:
@@ -350,21 +355,48 @@ def get_ohlcv(symbol: str, start: str, end: str, freq: str = "1d", adjust: str =
 #   - 接入真实数据源后，只需在此替换实现，不影响上层调用。
 # =========================
 
-def get_vix() -> Dict[str, Any]:
-    """返回 VIX 指标（兜底：固定值 18.0，可由环境变量 VIX_FAKE 覆盖）。"""
-    try:
-        v = float(os.getenv("VIX_FAKE", "18.0"))
-        return {"value": v}
-    except Exception:
-        return {"value": 18.0}
+def get_vix() -> dict:
+    """
+    返回VIX恐慌指数实时值。
+    尝试通过 AkShare 获取 VIX 恐慌指数最新收盘价，失败则回退到默认18.0。
+    """
+    # 如果 AkShare 可用，则调用全球指数接口获取 VIX
+    if ak is not None:
+        try:
+            # 获取投资者恐慌指数（VIX）日频数据
+            df = ak.index_investing_global(
+                country="美国",
+                index_name="VIX恐慌指数",
+                period="daily"
+            )
+            # 取最后一行的收盘价
+            latest_vix = float(df["收盘"].iloc[-1])
+            return {"value": latest_vix}
+        except Exception:
+            pass
+    # 回退到默认
+    return {"value": 18.0}
 
-def get_global_futures_change() -> Dict[str, Any]:
-    """返回“全球期货变动”百分比（兜底：0.0，可由环境变量 GLOBAL_FUT_CHG_FAKE 覆盖，单位：%）。"""
-    try:
-        pct = float(os.getenv("GLOBAL_FUT_CHG_FAKE", "0.0"))
-        return {"value": pct}
-    except Exception:
-        return {"value": 0.0}
+def get_global_futures_change() -> dict:
+    """
+    返回全球主要股指期货今日涨跌幅。
+    以道琼斯工业期货为例，计算最近两个交易日收盘价的环比涨跌率。
+    """
+    if ak is not None:
+        try:
+            # 获取美国道琼斯工业平均指数期货的日线行情
+            fut_df = ak.index_investing_global(
+                country="美国",
+                index_name="道琼斯工业平均指数",
+                period="daily"
+            )
+            latest_close = float(fut_df["收盘"].iloc[-1])
+            prev_close = float(fut_df["收盘"].iloc[-2])
+            pct_change = (latest_close / prev_close - 1.0) * 100.0
+            return {"value": pct_change}
+        except Exception:
+            pass
+    return {"value": 0.0}
 
 def get_index_above_ma(index: str = "CSI300", period: int = 20) -> Dict[str, Any]:
     """
@@ -390,16 +422,22 @@ def get_index_above_ma(index: str = "CSI300", period: int = 20) -> Dict[str, Any
         # 数据不可得时，返回“偏保守”的 True（不阻断流程）
         return {"above_ma": True, "close": None, "ma": None}
 
-def get_market_breadth() -> Dict[str, Any]:
+def get_market_breadth() -> dict:
     """
-    市场广度（兜底）：返回一个 0~1 的比例（默认 0.55）。
-    可用环境变量 MARKET_BREADTH_FAKE 覆盖，例如 0.62。
+    返回市场内部强弱广度指标。
+    调用 AkShare 提供的市场涨跌比指标，失败则回退到默认0.55。
     """
-    try:
-        v = float(os.getenv("MARKET_BREADTH_FAKE", "0.55"))
-        return {"value": max(0.0, min(1.0, v))}
-    except Exception:
-        return {"value": 0.55}
+    if ak is not None:
+        try:
+            # 例：使用百度市场内部宽度数据，返回涨跌比（上涨家数/下跌家数）
+            # symbol 参数可根据实际接口选择，如 '沪深A股'
+            breadth_df = ak.stock_market_breadth_baidu(symbol="市场涨跌比")
+            # 假定 DataFrame 中包含 '涨跌比' 列
+            breadth = float(breadth_df["涨跌比"].iloc[0])
+            return {"value": breadth}
+        except Exception:
+            pass
+    return {"value": 0.55}
 
 def get_northbound_score() -> Dict[str, Any]:
     """
@@ -415,57 +453,192 @@ def get_northbound_score() -> Dict[str, Any]:
 # ====== 下面这些“板块/个股”相关便捷函数，多数模块目前不强依赖；
 #        为避免导入报错，提供稳定兜底返回。后续接入真实数据时替换即可。 ======
 
-def get_sector_strength(sector: str) -> Dict[str, Any]:
-    """板块强度（兜底）：返回 0~1，默认 0.6。"""
-    try:
-        v = float(os.getenv("SECTOR_STRENGTH_FAKE", "0.6"))
-        return {"value": max(0.0, min(1.0, v))}
-    except Exception:
-        return {"value": 0.6}
+def get_sector_strength(sector: str) -> dict:
+    """
+    返回指定板块的相对强度。
+    通过获取板块指数的历史行情，计算最近 N 日收益率平均值作为强度。
+    """
+    if ak is not None:
+        try:
+            # 获取板块指数（同花顺行业指数）最近60日行情
+            today = datetime.date.today()
+            start_date = (today - datetime.timedelta(days=120)).strftime("%Y%m%d")
+            end_date = today.strftime("%Y%m%d")
+            df = ak.stock_board_industry_index_ths(
+                symbol=sector,
+                start_date=start_date,
+                end_date=end_date
+            )
+            # 计算日收益率平均值
+            df["pct_change"] = df["收盘"].pct_change()
+            strength_value = float(df["pct_change"].dropna().mean())
+            return {"value": strength_value}
+        except Exception:
+            pass
+    return {"value": 0.5}
 
 def get_sector_breadth(sector: str) -> Dict[str, Any]:
-    """板块广度（兜底）：返回 0~1，默认 0.55。"""
-    try:
-        v = float(os.getenv("SECTOR_BREADTH_FAKE", "0.55"))
-        return {"value": max(0.0, min(1.0, v))}
-    except Exception:
-        return {"value": 0.55}
+    """
+    板块广度：用该板块上涨股票数量占全部成份股比例度量。
+    如果 AkShare 可用，则获取板块成份股和实时行情并计算上涨比例。
+    """
+    if ak is not None:
+        try:
+            # 获取指定板块的成份股列表（同花顺行业/概念）
+            cons_df = ak.stock_board_industry_cons_ths(symbol=sector)
+            codes = cons_df["代码"].tolist() if "代码" in cons_df.columns else cons_df["code"].tolist()
+            # 获取全部A股实时行情
+            spot_df = ak.stock_zh_a_spot()
+            # 仅保留本板块股票并计算涨跌幅>0的数量
+            sub_df = spot_df[spot_df["代码"].isin(codes)]
+            rising_count = int((sub_df["涨跌幅"] > 0).sum())
+            breadth_ratio = rising_count / max(1, len(codes))
+            return {"value": float(breadth_ratio)}
+        except Exception:
+            pass
+    # 失败时回退到默认值
+    return {"value": 0.55}
 
 def get_sector_time_continuation(sector: str) -> Dict[str, Any]:
-    """板块时间延续性（兜底）：返回 bool，默认 True。"""
-    v = os.getenv("SECTOR_CONT_FAKE", "true").lower() in ("1", "true", "yes", "y")
-    return {"value": bool(v)}
+    """
+    板块时间延续性：判断该板块指数是否连续数日上涨。
+    若连续3日收盘价递增则认为趋势延续，否则为False。
+    """
+    if ak is not None:
+        try:
+            today = datetime.date.today()
+            start_date = (today - datetime.timedelta(days=10)).strftime("%Y%m%d")
+            end_date = today.strftime("%Y%m%d")
+            # 获取板块指数日线行情
+            index_df = ak.stock_board_industry_index_ths(
+                symbol=sector, start_date=start_date, end_date=end_date
+            )
+            closes = index_df["收盘"].astype(float).tolist()
+            # 取最近3个交易日判断是否递增
+            recent = closes[-3:]
+            is_continue = recent[0] < recent[1] < recent[2] if len(recent) == 3 else False
+            return {"value": bool(is_continue)}
+        except Exception:
+            pass
+    return {"value": True}
 
 def get_sector_capital_ratio(sector: str) -> Dict[str, Any]:
-    """板块资金集中度（兜底）：0~1，默认 0.52。"""
-    try:
-        v = float(os.getenv("SECTOR_CAP_RATIO_FAKE", "0.52"))
-        return {"value": max(0.0, min(1.0, v))}
-    except Exception:
-        return {"value": 0.52}
+    """
+    板块资金集中度：以资金净流入排序，计算Top5流入与总流入的比例。
+    """
+    if ak is not None:
+        try:
+            cons_df = ak.stock_board_industry_cons_ths(symbol=sector)
+            codes = cons_df["代码"].tolist() if "代码" in cons_df.columns else cons_df["code"].tolist()
+            # 获取股票资金流入排行（东财资金流）
+            flow_df = ak.stock_individual_fund_flow_rank()
+            sub_df = flow_df[flow_df["代码"].isin(codes)]
+            # 取净流入额并按降序排列
+            sub_df["net_inflow"] = sub_df["主力净流入"].astype(float)
+            total_inflow = sub_df["net_inflow"].sum()
+            top_inflow = sub_df.nlargest(5, "net_inflow")["net_inflow"].sum()
+            ratio = top_inflow / total_inflow if total_inflow != 0 else 0.0
+            return {"value": float(ratio)}
+        except Exception:
+            pass
+    return {"value": 0.52}
 
 def get_sector_endorsements(sector: str) -> Dict[str, Any]:
-    """板块背书事件计数（兜底）：非负整数，默认 1。"""
-    try:
-        v = int(os.getenv("SECTOR_ENDORSE_FAKE", "1"))
-        return {"value": max(0, v)}
-    except Exception:
-        return {"value": 1}
+    """
+    板块背书事件计数：以涨停股数量作为一种“背书”，统计板块内当天涨停股票数。
+    """
+    if ak is not None:
+        try:
+            # 获取当天的涨停股数据
+            zt_df = ak.stock_zt_pool_em()
+            cons_df = ak.stock_board_industry_cons_ths(symbol=sector)
+            codes = cons_df["代码"].tolist() if "代码" in cons_df.columns else cons_df["code"].tolist()
+            # 统计属于本板块的涨停股个数
+            count = int(zt_df[zt_df["代码"].isin(codes)].shape[0])
+            return {"value": count}
+        except Exception:
+            pass
+    return {"value": 1}
 
 def get_hidden_funds() -> Dict[str, Any]:
-    """“隐形资金”观察（兜底）：返回空集合。"""
+    """
+    隐形资金观察：返回当天机构或北向资金大额买入和卖出股票列表。
+    """
+    if ak is not None:
+        try:
+            # 获取北向资金个股资金流向排行
+            north_df = ak.stock_hsgt_individual_em()
+            # 升序排列取买入和卖出前五只股票
+            north_df = north_df.sort_values(by="今日涨跌幅", ascending=False)
+            buying = north_df.head(5)["代码"].tolist()
+            selling = north_df.tail(5)["代码"].tolist()
+            return {"buying": buying, "selling": selling}
+        except Exception:
+            pass
     return {"buying": [], "selling": []}
 
 def get_sector_top_stocks(sector: str, n: int = 5) -> List[Dict[str, Any]]:
-    """板块龙头 TopN（兜底）：返回空列表。"""
+    """
+    获取板块内涨跌幅排名靠前的 Top N 股票。
+    返回列表元素包含 symbol 和涨跌幅两个字段。
+    """
+    if ak is not None:
+        try:
+            cons_df = ak.stock_board_industry_cons_ths(symbol=sector)
+            codes = cons_df["代码"].tolist() if "代码" in cons_df.columns else cons_df["code"].tolist()
+            spot_df = ak.stock_zh_a_spot()
+            sub_df = spot_df[spot_df["代码"].isin(codes)]
+            sub_df["pct_change"] = sub_df["涨跌幅"].astype(float)
+            top_df = sub_df.nlargest(n, "pct_change")
+            return [
+                {"symbol": row["代码"], "name": row["名称"], "pct_change": row["pct_change"]}
+                for _, row in top_df.iterrows()
+            ]
+        except Exception:
+            pass
     return []
 
 def get_sector_earliest_limit_symbol(sector: str) -> Dict[str, Any]:
-    """板块内最早涨停的标的（兜底）：返回 None。"""
+    """
+    获取板块内当天最早涨停的标的和时间。
+    """
+    if ak is not None:
+        try:
+            # 获取强势涨停池，包含首次涨停时间
+            strong_df = ak.stock_zt_pool_strong_em()
+            cons_df = ak.stock_board_industry_cons_ths(symbol=sector)
+            codes = cons_df["代码"].tolist() if "代码" in cons_df.columns else cons_df["code"].tolist()
+            # 过滤属于本板块且有涨停时间的股票
+            sub_df = strong_df[strong_df["代码"].isin(codes)]
+            # 按首次涨停时间从早到晚排序
+            sub_df = sub_df[sub_df["首次涨停时间"].notnull()]
+            if not sub_df.empty:
+                row = sub_df.sort_values(by="首次涨停时间").iloc[0]
+                return {"symbol": row["代码"], "time": row["首次涨停时间"]}
+        except Exception:
+            pass
     return {"symbol": None, "time": None}
 
 def get_second_line_candidates(sector: str, n: int = 5) -> List[Dict[str, Any]]:
-    """第二梯队候选（兜底）：返回空列表。"""
+    """
+    获取板块第二梯队候选股票：按涨跌幅排名去掉 Top N，再选出下一个 N。
+    """
+    if ak is not None:
+        try:
+            cons_df = ak.stock_board_industry_cons_ths(symbol=sector)
+            codes = cons_df["代码"].tolist() if "代码" in cons_df.columns else cons_df["code"].tolist()
+            spot_df = ak.stock_zh_a_spot()
+            sub_df = spot_df[spot_df["代码"].isin(codes)]
+            sub_df["pct_change"] = sub_df["涨跌幅"].astype(float)
+            sorted_df = sub_df.sort_values(by="pct_change", ascending=False)
+            # 去掉领先梯队（前n），取第二梯队
+            second_df = sorted_df.iloc[n: n * 2]
+            return [
+                {"symbol": row["代码"], "name": row["名称"], "pct_change": row["pct_change"]}
+                for _, row in second_df.iterrows()
+            ]
+        except Exception:
+            pass
     return []
 
 

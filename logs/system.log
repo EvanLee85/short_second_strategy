@@ -92,3 +92,33 @@
 2025-09-01 22:04:22 | INFO     | werkzeug             | 127.0.0.1 - - [01/Sep/2025 22:04:22] "GET /api/v1/health HTTP/1.1" 200 -
 2025-09-01 22:04:22 | INFO     | werkzeug             | 127.0.0.1 - - [01/Sep/2025 22:04:22] "GET /api/v1/health HTTP/1.1" 200 -
 2025-09-01 22:04:23 | INFO     | werkzeug             | 127.0.0.1 - - [01/Sep/2025 22:04:23] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-01 22:22:55 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-01 22:22:55 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-01 22:22:55 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-01 22:22:56 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-01 22:22:56 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 10:24:38 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-02 10:24:38 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-02 10:24:38 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 10:24:39 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 10:24:39 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 11:56:07 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-02 11:56:07 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-02 11:56:07 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 11:56:08 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 11:56:08 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 12:01:47 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 12:01:47] "[33mGET /api/v1 HTTP/1.1[0m" 404 -
+2025-09-02 12:01:47 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 12:01:47] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-09-02 12:02:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 12:02:06] "[33mGET /api/frontend/index.html HTTP/1.1[0m" 404 -
+2025-09-02 12:02:11 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 12:02:11] "[33mGET /frontend/index.html HTTP/1.1[0m" 404 -
+2025-09-02 12:02:16 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 12:02:16] "[33mGET /index.html HTTP/1.1[0m" 404 -
+2025-09-02 12:03:49 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 12:03:49] "[33mGET /frontend/index.html HTTP/1.1[0m" 404 -

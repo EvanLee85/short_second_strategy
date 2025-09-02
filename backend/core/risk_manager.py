@@ -8,6 +8,10 @@ from backend.core.macro_filter import MacroFilter
 from backend.core.sector_rotation import SectorRotation
 from backend.analysis.technical import atr
 
+from datetime import datetime, timedelta
+from backend.data.fetcher import get_ohlcv
+
+
 _PAPER_STATE = {
     "position": None,   # 当前持仓：{symbol, qty, entry, stop, target, highest, atr, trail_k, closed, exit_*}
     "pnl": 0.0,         # 已实现盈亏（元）
@@ -23,17 +27,20 @@ class RiskManager:
     def load_from_config(cls):
         return cls(load_thresholds())
 
-    def _load_df_stub(self) -> pd.DataFrame:
-        base = 10.0
-        closes = [base + i*0.05 for i in range(40)]
-        highs  = [c * (1 + 0.005) for c in closes]
-        lows   = [c * (1 - 0.005) for c in closes]
-        opens  = [closes[i-1] if i>0 else closes[0]*0.998 for i in range(len(closes))]
-        vols   = [1000 + i*10 for i in range(len(closes))]
-        idx = pd.date_range("2024-01-01", periods=len(closes), freq="D")
-        df = pd.DataFrame({"open":opens,"high":highs,"low":lows,"close":closes,"volume":vols}, index=idx)
-        df["atr14"] = atr(df, 14)
-        return df
+    def _load_df_stub(self, symbol="000001.XSHE"):
+        try:
+            end = datetime.now().strftime("%Y-%m-%d")
+            start = (datetime.now() - timedelta(days=120)).strftime("%Y-%m-%d")
+            df = get_ohlcv(symbol, start, end)
+            df["atr14"] = atr(df, 14)
+            return df
+        except Exception:
+            # 若网络或 Akshare 调用失败，沿用原来的 stub
+            base = 10.0
+            closes = [base + i*0.05 for i in range(40)]
+            ...
+            df["atr14"] = atr(df, 14)
+            return df
 
     def evaluate_trade_gates(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         cfg = self.thresholds.get("gates", {})
