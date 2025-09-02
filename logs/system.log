@@ -229,3 +229,8 @@
 2025-09-02 16:41:05 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
 2025-09-02 16:41:05 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
 2025-09-02 16:41:05 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:41:05] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 16:43:33 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:43:33] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 16:43:41 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:43:41] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 16:43:41 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 16:43:41 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 16:43:41 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:43:41] "GET /api/v1/macro/status HTTP/1.1" 200 -
