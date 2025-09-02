@@ -234,3 +234,258 @@
 2025-09-02 16:43:41 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
 2025-09-02 16:43:41 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
 2025-09-02 16:43:41 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:43:41] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 16:47:29 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-02 16:47:29 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-02 16:47:29 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 16:47:29 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 16:47:29 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 16:48:56 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:48:56] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 16:48:56 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 16:48:56 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 16:48:56 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 16:48:56] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:09:43 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:09:43] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:09:43 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:09:43 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:09:43 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:09:43] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:10:49 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:10:49] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:10:49 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:10:49 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:10:49 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:10:49] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:10:50 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:10:50] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:10:50 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:10:50 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:10:50 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:10:50] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:10:51 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:10:51] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:10:51 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:10:51 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:10:51 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:10:51] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:13:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:13:15] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:13:16 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:13:16] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:13:16 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:13:16 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:13:16 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:13:16] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:14:30 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:14:30] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:14:30 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:14:30 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:14:30 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:14:30] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:15:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:15:06] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:15:07 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:15:07] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:15:07 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:15:07 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:15:07 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:15:07] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:15:13 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:15:13] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:15:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:15:14] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:15:14 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:15:14 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:15:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:15:14] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:29:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:29:06] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:29:06 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:29:06 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:29:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:29:06] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:30:04 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:04] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:30:04 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:30:04 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:30:04 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:04] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:30:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:06] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:30:06 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:30:06 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:30:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:06] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:30:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:06] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:30:06 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:30:06 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:30:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:06] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:30:07 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:07] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:30:07 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:30:07 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:30:07 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:30:07] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:50:37 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-02 17:50:37 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-02 17:50:37 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 17:50:38 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 17:50:38 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 17:51:05 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:05] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:05 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:05 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:05 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:05] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:05 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:05] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:05 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:05 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:05 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:05] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:06] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:06 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:06 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:06 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:06] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:13 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:13] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:13 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:13 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:13 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:13] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:14] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:14 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:14 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:14] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:14] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:14 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:14 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:14] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:14] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:14 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:14 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:14 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:14] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:15 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:15 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:15 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:15 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:15 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:15 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:15] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:51:18 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:18] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:18 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:18] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 17:51:18 | INFO     | backend.data.providers.akshare_provider | AkshareProvider initialized: retry=True(3), rate_limit=True(60/min), timeout=15s
+2025-09-02 17:51:18 | INFO     | data.fetcher         | 数据源错误摘要: {"total": 0}
+2025-09-02 17:51:18 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 17:51:18] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 17:58:18 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 17:58:19 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 17:58:20 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 17:58:20 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 17:58:52 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 17:58:53 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 17:58:54 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 17:58:54 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 17:59:27 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 17:59:27 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 17:59:28 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 17:59:28 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 17:59:46 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 17:59:46 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 17:59:47 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 17:59:47 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:00:16 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 18:00:16 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:00:17 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:00:17 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:00:45 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 18:00:45 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:00:46 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:00:46 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:01:09 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 18:01:09 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:01:10 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:01:10 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:01:16 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 18:01:16 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:01:17 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:01:17 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:01:33 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-02 18:01:33 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-02 18:01:33 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:01:34 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:01:34 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:01:39 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:01:39] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:01:40 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:01:40] "[35m[1mGET /api/v1/macro/status HTTP/1.1[0m" 500 -
+2025-09-02 18:01:43 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:01:43] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:01:43 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:01:43] "[35m[1mGET /api/v1/macro/status HTTP/1.1[0m" 500 -
+2025-09-02 18:01:44 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:01:44] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:01:44 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:01:44] "[35m[1mGET /api/v1/macro/status HTTP/1.1[0m" 500 -
+2025-09-02 18:05:53 | INFO     | werkzeug             |  * Detected change in '/home/evan/short_second_strategy/backend/data/fetcher.py', reloading
+2025-09-02 18:05:53 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:05:53 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:05:53 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:06:07 | INFO     | werkzeug             | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.52.1.159:5000
+2025-09-02 18:06:07 | INFO     | werkzeug             | [33mPress CTRL+C to quit[0m
+2025-09-02 18:06:07 | INFO     | werkzeug             |  * Restarting with stat
+2025-09-02 18:06:08 | WARNING  | werkzeug             |  * Debugger is active!
+2025-09-02 18:06:08 | INFO     | werkzeug             |  * Debugger PIN: 114-734-783
+2025-09-02 18:06:10 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:10] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:12 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:12 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:19 | INFO     | backend.data.fetcher | 市场广度: 51.99% (2607/5014)
+2025-09-02 18:06:20 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:20 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:20] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:20 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:20 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:20] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:20 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:21 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:21] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:21 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:21] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:21 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:21] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:21 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:21] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:21 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:21] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:21 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:21 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:21] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:22 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:22] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:22 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:22] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟市场广度: 0.56
+2025-09-02 18:06:22 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:22] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.62
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.31%
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟市场广度: 0.56
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟市场广度: 0.56
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟市场广度: 0.56
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟市场广度: 0.56
+2025-09-02 18:06:22 | INFO     | backend.data.fetcher | 使用模拟市场广度: 0.56
+2025-09-02 18:06:23 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:23 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:23] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:24 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:24 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:24] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:24 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:24 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:24] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:24 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:24 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:24] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:24 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:24 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:24] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:24 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:24 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:24] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:54 | INFO     | backend.data.fetcher | 市场广度: 51.99% (2607/5014)
+2025-09-02 18:06:55 | INFO     | backend.data.fetcher | 市场广度: 51.99% (2607/5014)
+2025-09-02 18:06:56 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:56 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:56] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:57 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:57 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:57] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:06:58 | INFO     | backend.data.fetcher | 市场广度: 51.99% (2607/5014)
+2025-09-02 18:06:59 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:06:59 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:06:59] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:07:00 | INFO     | backend.data.fetcher | 市场广度: 51.99% (2607/5014)
+2025-09-02 18:07:01 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:07:01 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:07:01] "GET /api/v1/macro/status HTTP/1.1" 200 -
+2025-09-02 18:07:24 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:07:24] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:07:25 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:07:25] "GET /api/v1/health HTTP/1.1" 200 -
+2025-09-02 18:07:25 | INFO     | backend.data.fetcher | 使用模拟 VIX: 18.29
+2025-09-02 18:07:27 | INFO     | backend.data.fetcher | 使用模拟期货涨跌: 0.14%
+2025-09-02 18:07:31 | INFO     | backend.data.fetcher | 市场广度: 51.99% (2607/5014)
+2025-09-02 18:07:33 | INFO     | backend.data.fetcher | 沪股通净买入: nan亿, 评分: 1.00
+2025-09-02 18:07:33 | INFO     | werkzeug             | 127.0.0.1 - - [02/Sep/2025 18:07:33] "GET /api/v1/macro/status HTTP/1.1" 200 -

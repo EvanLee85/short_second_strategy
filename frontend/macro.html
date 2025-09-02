@@ -6,6 +6,218 @@
     <meta name="api-base" content="http://127.0.0.1:5000/api/v1">
     <title>宏观环境监控 - 短周期量化交易系统</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 额外的样式定义 */
+        .data-source-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            margin-left: 10px;
+        }
+        
+        .timestamp-display {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        
+        .clickable-card {
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .clickable-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .clickable-card::after {
+            content: "点击查看详情";
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 10px;
+            color: #64748b;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .clickable-card:hover::after {
+            opacity: 1;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        
+        .modal-close:hover {
+            background: rgba(148, 163, 184, 0.1);
+            color: #f8fafc;
+        }
+        
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .detail-section h4 {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-content {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        
+        .detail-value {
+            color: #f8fafc;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .calculation-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #60a5fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.pass {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .status-badge.fail {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        /* 数据源和时间戳容器 */
+        .data-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn {
+            padding: 6px 12px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 6px;
+            color: #60a5fa;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -33,71 +245,437 @@
         <div class="tab-content">
             <div class="card">
                 <h3>宏观环境指标</h3>
+                
+                <!-- 数据源和时间信息栏 -->
+                <div class="data-info-bar">
+                    <div>
+                        <span style="color: #94a3b8;">数据来源：</span>
+                        <span id="data-source" style="color: #f8fafc;">-</span>
+                        <span class="data-source-badge" id="source-badge">STUB</span>
+                    </div>
+                    <div>
+                        <span style="color: #94a3b8;">更新时间：</span>
+                        <span id="update-time" style="color: #f8fafc;">-</span>
+                    </div>
+                    <button class="refresh-btn" onclick="location.reload()">刷新数据</button>
+                </div>
+                
                 <div id="macro-summary" class="status-summary"></div>
-                <div id="macro-recommend"></div>
+                
+                <!-- 交易决策显示 -->
+                <div id="trade-decision" style="margin-top: 20px; padding: 15px; background: rgba(30, 41, 59, 0.6); border-radius: 8px;">
+                    <h4 style="margin-bottom: 10px; color: #94a3b8;">交易决策</h4>
+                    <div id="decision-content" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    
+    <!-- 详情模态框 -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">指标详情</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+    
     <script>
+    // 全局变量存储数据
+    let macroData = null;
+    let fetchTimestamp = null;
+    
     (function() {
         const base = document.querySelector('meta[name="api-base"]').content;
-        // update status indicator by pinging health endpoint
+        
+        // 更新状态指示器
         const dot = document.getElementById('status-dot');
         const text = document.getElementById('status-text');
-        fetch(`${base}/health`).then(res => res.json()).then(data => {
-            dot.style.background = '#10b981';
-            text.textContent = '在线';
-        }).catch(() => {
-            dot.style.background = '#ef4444';
-            text.textContent = '离线';
-        });
-        // fetch macro status
-        fetch(`${base}/macro/status`).then(async res => {
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            const summary = document.getElementById('macro-summary');
-            const items = {
-                vix: { label: 'VIX指数', value: data.vix },
-                global_futures_change: { label: '全球期货涨跌幅', value: data.global_futures_change },
-                index_above_ma: { label: '指数站稳均线比例', value: data.index_above_ma },
-                market_breadth: { label: '市场广度', value: data.market_breadth },
-                northbound_score: { label: '北向资金评分', value: data.northbound_score }
-            };
-            const classify = (k, v) => {
-                if (k === 'vix') return v < 20 ? 'positive' : v < 25 ? 'warning' : 'negative';
-                if (k === 'global_futures_change') return v > 0 ? 'positive' : v > -1 ? 'warning' : 'negative';
-                if (k === 'index_above_ma') return v > 0.6 ? 'positive' : v > 0.5 ? 'warning' : 'negative';
-                if (k === 'market_breadth') return v > 0.55 ? 'positive' : v > 0.45 ? 'warning' : 'negative';
-                if (k === 'northbound_score') return v > 60 ? 'positive' : v > 40 ? 'warning' : 'negative';
-                return '';
-            };
-            Object.keys(items).forEach(key => {
-                const item = items[key];
-                const div = document.createElement('div');
-                const cls = classify(key, item.value);
-                div.className = `summary-item ${cls}`;
-                const val = document.createElement('div');
-                val.className = 'summary-value';
-                val.textContent = (typeof item.value === 'number') ? item.value.toFixed(2) : item.value;
-                const label = document.createElement('div');
-                label.className = 'summary-label';
-                label.textContent = item.label;
-                div.appendChild(val);
-                div.appendChild(label);
-                summary.appendChild(div);
+        
+        fetch(`${base}/health`)
+            .then(res => res.json())
+            .then(data => {
+                dot.style.background = '#10b981';
+                text.textContent = '在线';
+            })
+            .catch(() => {
+                dot.style.background = '#ef4444';
+                text.textContent = '离线';
             });
-            // recommendation / result
-            const rec = document.getElementById('macro-recommend');
-            if (data.result || data.recommendation) {
-                const p = document.createElement('p');
-                p.textContent = data.recommendation || data.result;
-                rec.appendChild(p);
-            }
-        }).catch(() => {
-            const summary = document.getElementById('macro-summary');
-            summary.innerHTML = '<p>无法获取宏观数据。</p>';
-        });
+        
+        // 记录请求开始时间
+        const requestStartTime = new Date();
+        
+        // 获取宏观状态数据
+        fetch(`${base}/macro/status`)
+            .then(async res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                // 记录数据获取完成时间
+                fetchTimestamp = new Date();
+                macroData = data;
+                
+                console.log('原始数据:', data);
+                
+                // 推断数据源
+                const dataSource = inferDataSource(data);
+                updateDataSourceDisplay(dataSource, fetchTimestamp);
+                
+                const summary = document.getElementById('macro-summary');
+                summary.innerHTML = '';
+                
+                // 构建指标配置，包含详细信息
+                const indicators = [
+                    {
+                        key: 'vix',
+                        label: 'VIX恐慌指数',
+                        value: data.hard?.vix?.value,
+                        pass: data.hard?.vix?.pass,
+                        threshold: data.hard?.vix?.max || 25,
+                        thresholdText: `< ${data.hard?.vix?.max || 25}`,
+                        type: 'hard',
+                        description: 'VIX指数反映市场恐慌程度，值越高表示市场越恐慌',
+                        formatter: v => v?.toFixed(1) ?? 'N/A'
+                    },
+                    {
+                        key: 'global_futures',
+                        label: '全球期货涨跌',
+                        value: data.hard?.global_futures?.value,
+                        pass: data.hard?.global_futures?.pass,
+                        threshold: data.hard?.global_futures?.min || -1.5,
+                        thresholdText: `> ${data.hard?.global_futures?.min || -1.5}%`,
+                        type: 'hard',
+                        description: '全球主要股指期货的涨跌幅，反映全球市场情绪',
+                        formatter: v => v !== null && v !== undefined ? `${v.toFixed(2)}%` : 'N/A'
+                    },
+                    {
+                        key: 'index_above_ma',
+                        label: `${data.soft?.index_above_ma?.index || 'CSI300'} MA${data.soft?.index_above_ma?.period || 50}`,
+                        value: data.soft?.index_above_ma?.above ? 1 : 0,
+                        pass: data.soft?.index_above_ma?.pass,
+                        threshold: true,
+                        thresholdText: '站上均线',
+                        type: 'soft',
+                        description: '指数是否站上移动平均线，表示中期趋势方向',
+                        formatter: v => v > 0 ? '是' : '否',
+                        originalData: data.soft?.index_above_ma
+                    },
+                    {
+                        key: 'market_breadth',
+                        label: '市场广度',
+                        value: data.soft?.breadth?.value,
+                        pass: data.soft?.breadth?.pass,
+                        threshold: data.soft?.breadth?.min || 0.55,
+                        thresholdText: `> ${data.soft?.breadth?.min || 0.55}`,
+                        type: 'soft',
+                        description: '市场内部强弱程度，上涨股票占比',
+                        formatter: v => v !== null && v !== undefined ? v.toFixed(2) : 'N/A'
+                    },
+                    {
+                        key: 'northbound',
+                        label: '北向资金评分',
+                        value: data.soft?.northbound?.value,
+                        pass: data.soft?.northbound?.pass,
+                        threshold: data.soft?.northbound?.min || 0.5,
+                        thresholdText: `> ${data.soft?.northbound?.min || 0.5}`,
+                        type: 'soft',
+                        description: '北向资金流入评分，反映外资态度',
+                        formatter: v => {
+                            if (v === null || v === undefined) return 'N/A';
+                            // 显示原始值和转换后的百分制
+                            return `${v.toFixed(2)} (${((v + 1) * 50).toFixed(0)}/100)`;
+                        }
+                    }
+                ];
+                
+                // 渲染指标卡片
+                indicators.forEach((indicator, index) => {
+                    const div = document.createElement('div');
+                    const status = indicator.pass === true ? 'positive' : 
+                                 indicator.pass === false ? 'negative' : 'warning';
+                    div.className = `summary-item ${status} clickable-card`;
+                    div.onclick = () => showDetail(indicator, dataSource, fetchTimestamp);
+                    
+                    const passIcon = indicator.pass ? '✓' : '✗';
+                    const passColor = indicator.pass ? '#10b981' : '#ef4444';
+                    
+                    div.innerHTML = `
+                        <div style="position: absolute; top: 10px; right: 12px; color: ${passColor}; font-size: 18px; font-weight: bold;">
+                            ${passIcon}
+                        </div>
+                        <div style="position: absolute; top: 10px; left: 12px;">
+                            <span style="font-size: 10px; color: #64748b; text-transform: uppercase;">
+                                ${indicator.type === 'hard' ? '硬指标' : '软指标'}
+                            </span>
+                        </div>
+                        <div class="summary-value">${indicator.formatter(indicator.value)}</div>
+                        <div class="summary-label">${indicator.label}</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">${indicator.thresholdText}</div>
+                    `;
+                    
+                    summary.appendChild(div);
+                });
+                
+                // 显示交易决策汇总
+                const decisionContent = document.getElementById('decision-content');
+                const summaryData = data.summary;
+                
+                if (summaryData) {
+                    const permitted = summaryData.trade_permitted;
+                    const permitColor = permitted ? '#10b981' : '#ef4444';
+                    const permitText = permitted ? '允许交易' : '暂停交易';
+                    
+                    decisionContent.innerHTML = `
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="font-size: 24px; font-weight: bold; color: ${permitColor};">
+                                ${permitText}
+                            </div>
+                            <div style="margin-top: 10px; color: #94a3b8; font-size: 14px;">
+                                <div>硬指标：${summaryData.hard_pass ? '✓ 通过' : '✗ 未通过'}</div>
+                                <div>软指标：${summaryData.soft_pass_count}/${summaryData.soft_total} 通过</div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+                                ${summaryData.hard_pass ? 
+                                    '硬性指标全部通过，市场环境基本稳定。' : 
+                                    '硬性指标未通过，建议暂停交易。'}
+                                ${summaryData.soft_pass_count >= 2 ? 
+                                    '软性指标表现良好，市场情绪积极。' :
+                                    '软性指标表现不佳，需谨慎观察。'}
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('获取宏观数据失败:', error);
+                const summary = document.getElementById('macro-summary');
+                summary.innerHTML = `
+                    <div style="color: #ef4444; padding: 20px; text-align: center;">
+                        <p>无法获取宏观数据</p>
+                        <p style="font-size: 14px; margin-top: 10px; color: #94a3b8;">错误: ${error.message}</p>
+                    </div>
+                `;
+            });
     })();
+    
+    // 推断数据源
+    function inferDataSource(data) {
+        // 根据特征值判断数据源
+        const vixValue = data.hard?.vix?.value;
+        const gfValue = data.hard?.global_futures?.value;
+        const breadthValue = data.soft?.breadth?.value;
+        
+        // 如果是特定的stub值
+        if (vixValue === 18 && gfValue === 0 && breadthValue === 0.55) {
+            return {
+                type: 'stub',
+                name: 'Stub测试数据',
+                description: '使用预设的测试数据，非真实市场数据'
+            };
+        }
+        
+        // 其他判断逻辑
+        if (vixValue && vixValue !== 18) {
+            // 可能是真实数据
+            return {
+                type: 'live',
+                name: 'AkShare/TuShare',
+                description: '可能来自真实数据源'
+            };
+        }
+        
+        return {
+            type: 'unknown',
+            name: '未知来源',
+            description: '无法确定数据来源'
+        };
+    }
+    
+    // 更新数据源显示
+    function updateDataSourceDisplay(dataSource, timestamp) {
+        const sourceEl = document.getElementById('data-source');
+        const badgeEl = document.getElementById('source-badge');
+        const timeEl = document.getElementById('update-time');
+        
+        sourceEl.textContent = dataSource.name;
+        badgeEl.textContent = dataSource.type.toUpperCase();
+        
+        // 根据数据源类型设置徽章颜色
+        if (dataSource.type === 'stub') {
+            badgeEl.style.background = 'rgba(245, 158, 11, 0.2)';
+            badgeEl.style.color = '#f59e0b';
+        } else if (dataSource.type === 'live') {
+            badgeEl.style.background = 'rgba(16, 185, 129, 0.2)';
+            badgeEl.style.color = '#10b981';
+        }
+        
+        // 格式化时间显示
+        const timeStr = timestamp.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        timeEl.textContent = timeStr;
+    }
+    
+    // 显示详情模态框
+    function showDetail(indicator, dataSource, timestamp) {
+        const modal = document.getElementById('detail-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        
+        modalTitle.textContent = `${indicator.label} - 详细信息`;
+        
+        // 构建计算过程
+        let calculationProcess = '';
+        if (indicator.key === 'vix') {
+            calculationProcess = `
+                当前值: ${indicator.value}
+                阈值要求: < ${indicator.threshold}
+                判定公式: ${indicator.value} < ${indicator.threshold}
+                判定结果: ${indicator.pass ? '通过' : '未通过'}
+            `;
+        } else if (indicator.key === 'global_futures') {
+            calculationProcess = `
+                当前值: ${indicator.value}%
+                阈值要求: > ${indicator.threshold}%
+                判定公式: ${indicator.value} > ${indicator.threshold}
+                判定结果: ${indicator.pass ? '通过' : '未通过'}
+            `;
+        } else if (indicator.key === 'index_above_ma') {
+            calculationProcess = `
+                指数: ${indicator.originalData?.index || 'CSI300'}
+                均线周期: ${indicator.originalData?.period || 50}日
+                当前状态: ${indicator.originalData?.above ? '站上均线' : '跌破均线'}
+                判定结果: ${indicator.pass ? '通过' : '未通过'}
+            `;
+        } else if (indicator.key === 'market_breadth') {
+            calculationProcess = `
+                当前值: ${indicator.value}
+                阈值要求: > ${indicator.threshold}
+                判定公式: ${indicator.value} > ${indicator.threshold}
+                判定结果: ${indicator.pass ? '通过' : '未通过'}
+                
+                说明: 市场广度表示上涨股票占比
+                计算: 上涨股票数 / 总股票数
+            `;
+        } else if (indicator.key === 'northbound') {
+            const percentScore = ((indicator.value + 1) * 50).toFixed(0);
+            calculationProcess = `
+                原始值: ${indicator.value}
+                百分制: ${percentScore}/100
+                阈值要求: > ${indicator.threshold}
+                判定公式: ${indicator.value} > ${indicator.threshold}
+                判定结果: ${indicator.pass ? '通过' : '未通过'}
+                
+                说明: 原始值范围 [-1, 1]
+                转换公式: (原始值 + 1) × 50 = 百分制得分
+            `;
+        }
+        
+        modalBody.innerHTML = `
+            <div class="detail-section">
+                <h4>基本信息</h4>
+                <div class="detail-content">
+                    <div class="detail-row">
+                        <span class="detail-label">指标名称</span>
+                        <span class="detail-value">${indicator.label}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">指标类型</span>
+                        <span class="detail-value">${indicator.type === 'hard' ? '硬性指标' : '软性指标'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">当前值</span>
+                        <span class="detail-value">${indicator.formatter(indicator.value)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">阈值要求</span>
+                        <span class="detail-value">${indicator.thresholdText}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">判定结果</span>
+                        <span class="detail-value">
+                            <span class="status-badge ${indicator.pass ? 'pass' : 'fail'}">
+                                ${indicator.pass ? '通过' : '未通过'}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>数据来源</h4>
+                <div class="detail-content">
+                    <div class="detail-row">
+                        <span class="detail-label">数据源</span>
+                        <span class="detail-value">${dataSource.name}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">数据类型</span>
+                        <span class="detail-value">${dataSource.type.toUpperCase()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">获取时间</span>
+                        <span class="detail-value">${timestamp.toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">说明</span>
+                        <span class="detail-value" style="font-size: 12px;">${dataSource.description}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>计算过程</h4>
+                <div class="detail-content">
+                    <div class="calculation-box">
+                        <pre style="margin: 0; white-space: pre-wrap;">${calculationProcess}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>指标说明</h4>
+                <div class="detail-content">
+                    <p style="color: #cbd5e1; line-height: 1.6; font-size: 14px;">
+                        ${indicator.description}
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+    }
+    
+    // 关闭模态框
+    function closeModal() {
+        const modal = document.getElementById('detail-modal');
+        modal.style.display = 'none';
+    }
+    
+    // 点击模态框外部关闭
+    window.onclick = function(event) {
+        const modal = document.getElementById('detail-modal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    }
     </script>
 </body>
 </html>
