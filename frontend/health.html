@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base" content="http://127.0.0.1:5000/api/v1">
+    <title>系统健康检查 - 短周期量化交易系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>短周期量化交易系统</h1>
+                    <p>实时仪表盘</p>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span class="status-text" id="status-text">检查中...</span>
+                </div>
+            </div>
+        </div>
+        <nav class="nav-tabs">
+            <a href="health.html" class="nav-tab active">健康检查</a>
+            <a href="macro.html" class="nav-tab">宏观环境</a>
+            <a href="sectors.html" class="nav-tab">板块轮动</a>
+            <a href="leaders.html" class="nav-tab">龙头筛选</a>
+            <a href="signal.html" class="nav-tab">入场信号</a>
+            <a href="risk.html" class="nav-tab">风险评估</a>
+            <a href="paper.html" class="nav-tab">纸上交易</a>
+        </nav>
+        <div class="tab-content">
+            <div class="card">
+                <h3>后台健康状态</h3>
+                <p id="health-result">正在检查...</p>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        const base = document.querySelector('meta[name="api-base"]').content;
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        const result = document.getElementById('health-result');
+        fetch(`${base}/health`).then(async (res) => {
+            if (res.ok) {
+                const data = await res.json();
+                dot.style.background = '#10b981';
+                text.textContent = '在线';
+                result.textContent = JSON.stringify(data);
+            } else {
+                throw new Error('bad response');
+            }
+        }).catch((err) => {
+            dot.style.background = '#ef4444';
+            text.textContent = '离线';
+            result.textContent = '无法获取健康状态';
+        });
+    })();
+    </script>
+</body>
+</html>

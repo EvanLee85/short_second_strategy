@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base" content="http://127.0.0.1:5000/api/v1">
+    <title>纸上交易模拟 - 短周期量化交易系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>短周期量化交易系统</h1>
+                    <p>实时仪表盘</p>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span class="status-text" id="status-text">检查中...</span>
+                </div>
+            </div>
+        </div>
+        <nav class="nav-tabs">
+            <a href="health.html" class="nav-tab">健康检查</a>
+            <a href="macro.html" class="nav-tab">宏观环境</a>
+            <a href="sectors.html" class="nav-tab">板块轮动</a>
+            <a href="leaders.html" class="nav-tab">龙头筛选</a>
+            <a href="signal.html" class="nav-tab">入场信号</a>
+            <a href="risk.html" class="nav-tab">风险评估</a>
+            <a href="paper.html" class="nav-tab active">纸上交易</a>
+        </nav>
+        <div class="tab-content">
+            <div class="card">
+                <h3>开仓操作</h3>
+                <div class="form-group">
+                    <label for="open-symbol">股票代码</label>
+                    <input type="text" id="open-symbol" placeholder="如 002415">
+                </div>
+                <div class="form-group">
+                    <label for="open-sector">板块（可选）</label>
+                    <input type="text" id="open-sector" placeholder="如 AI">
+                </div>
+                <div class="form-group">
+                    <label for="open-mode">模式</label>
+                    <select id="open-mode">
+                        <option value="breakout">突破</option>
+                        <option value="pullback">回踩</option>
+                        <option value="reversal">反转</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="open-price">进场价</label>
+                    <input type="number" id="open-price" step="0.01" placeholder="例如 11.95">
+                </div>
+                <div class="form-group">
+                    <label for="open-account">账户资金（元）</label>
+                    <input type="number" id="open-account" step="1" placeholder="例如 200000">
+                </div>
+                <button id="open-btn">执行开仓</button>
+                <div id="open-result" style="margin-top:20px;"></div>
+            </div>
+            <div class="card">
+                <h3>推进行情</h3>
+                <div class="form-group">
+                    <label for="step-price">当前价</label>
+                    <input type="number" id="step-price" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="step-high">最高价（可选）</label>
+                    <input type="number" id="step-high" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="step-low">最低价（可选）</label>
+                    <input type="number" id="step-low" step="0.01">
+                </div>
+                <button id="step-btn">推进一步</button>
+                <div id="step-result" style="margin-top:20px;"></div>
+            </div>
+            <div class="card">
+                <h3>查看纸上状态</h3>
+                <button id="state-btn">刷新状态</button>
+                <div id="state-result" style="margin-top:20px;"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        const base = document.querySelector('meta[name="api-base"]').content;
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        fetch(`${base}/health`).then(res => res.json()).then(() => {
+            dot.style.background = '#10b981';
+            text.textContent = '在线';
+        }).catch(() => {
+            dot.style.background = '#ef4444';
+            text.textContent = '离线';
+        });
+        // open
+        document.getElementById('open-btn').addEventListener('click', () => {
+            const symbol = document.getElementById('open-symbol').value.trim();
+            const sector = document.getElementById('open-sector').value.trim();
+            const mode = document.getElementById('open-mode').value;
+            const price = document.getElementById('open-price').value.trim();
+            const account = document.getElementById('open-account').value.trim();
+            if (!symbol || !account || !price) {
+                document.getElementById('open-result').innerHTML = '<p>请填写股票代码、账户资金和进场价。</p>';
+                return;
+            }
+            const payload = {
+                symbol: symbol,
+                sector: sector || undefined,
+                mode: mode,
+                price: parseFloat(price),
+                account_size: parseFloat(account)
+            };
+            // remove undefined
+            if (!payload.sector) delete payload.sector;
+            const resultDiv = document.getElementById('open-result');
+            resultDiv.innerHTML = '<p>正在执行...</p>';
+            fetch(`${base}/paper/open`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(async res => {
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                resultDiv.innerHTML = '<pre style="white-space:pre-wrap;word-wrap:break-word;">' + JSON.stringify(data, null, 2) + '</pre>';
+            }).catch(() => {
+                resultDiv.innerHTML = '<p>开仓失败。</p>';
+            });
+        });
+        // step
+        document.getElementById('step-btn').addEventListener('click', () => {
+            const price = document.getElementById('step-price').value.trim();
+            if (!price) {
+                document.getElementById('step-result').innerHTML = '<p>请输入当前价。</p>';
+                return;
+            }
+            const high = document.getElementById('step-high').value.trim();
+            const low = document.getElementById('step-low').value.trim();
+            const payload = { price: parseFloat(price) };
+            if (high) payload.high = parseFloat(high);
+            if (low) payload.low = parseFloat(low);
+            const resultDiv = document.getElementById('step-result');
+            resultDiv.innerHTML = '<p>正在推进...</p>';
+            fetch(`${base}/paper/step`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(async res => {
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                resultDiv.innerHTML = '<pre style="white-space:pre-wrap;word-wrap:break-word;">' + JSON.stringify(data, null, 2) + '</pre>';
+            }).catch(() => {
+                resultDiv.innerHTML = '<p>推进失败。</p>';
+            });
+        });
+        // state
+        document.getElementById('state-btn').addEventListener('click', () => {
+            const resultDiv = document.getElementById('state-result');
+            resultDiv.innerHTML = '<p>加载中...</p>';
+            fetch(`${base}/paper/state`).then(async res => {
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                resultDiv.innerHTML = '<pre style="white-space:pre-wrap;word-wrap:break-word;">' + JSON.stringify(data, null, 2) + '</pre>';
+            }).catch(() => {
+                resultDiv.innerHTML = '<p>获取状态失败。</p>';
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base" content="http://127.0.0.1:5000/api/v1">
+    <title>入场信号生成 - 短周期量化交易系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>短周期量化交易系统</h1>
+                    <p>实时仪表盘</p>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span class="status-text" id="status-text">检查中...</span>
+                </div>
+            </div>
+        </div>
+        <nav class="nav-tabs">
+            <a href="health.html" class="nav-tab">健康检查</a>
+            <a href="macro.html" class="nav-tab">宏观环境</a>
+            <a href="sectors.html" class="nav-tab">板块轮动</a>
+            <a href="leaders.html" class="nav-tab">龙头筛选</a>
+            <a href="signal.html" class="nav-tab active">入场信号</a>
+            <a href="risk.html" class="nav-tab">风险评估</a>
+            <a href="paper.html" class="nav-tab">纸上交易</a>
+        </nav>
+        <div class="tab-content">
+            <div class="card">
+                <h3>入场信号生成</h3>
+                <div class="form-group">
+                    <label for="symbol-input">股票代码</label>
+                    <input type="text" id="symbol-input" placeholder="如 002415 或 600519">
+                </div>
+                <div class="form-group">
+                    <label for="mode-select">模式</label>
+                    <select id="mode-select">
+                        <option value="breakout">突破</option>
+                        <option value="pullback">回踩</option>
+                        <option value="reversal">反转</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="price-input">当前价格（选填）</label>
+                    <input type="number" id="price-input" step="0.01" placeholder="例如 11.95">
+                </div>
+                <button id="signal-btn">生成信号</button>
+                <div id="signal-result" style="margin-top:24px;"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        const base = document.querySelector('meta[name="api-base"]').content;
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        // update health status
+        fetch(`${base}/health`).then(res => res.json()).then(() => {
+            dot.style.background = '#10b981';
+            text.textContent = '在线';
+        }).catch(() => {
+            dot.style.background = '#ef4444';
+            text.textContent = '离线';
+        });
+        document.getElementById('signal-btn').addEventListener('click', () => {
+            const symbol = document.getElementById('symbol-input').value.trim();
+            const mode = document.getElementById('mode-select').value;
+            const priceVal = document.getElementById('price-input').value.trim();
+            if (!symbol) {
+                document.getElementById('signal-result').innerHTML = '<p>请输入股票代码。</p>';
+                return;
+            }
+            const payload = { symbol: symbol, mode: mode };
+            if (priceVal) payload.price = parseFloat(priceVal);
+            const resultDiv = document.getElementById('signal-result');
+            resultDiv.innerHTML = '<p>正在生成信号...</p>';
+            fetch(`${base}/trades/signal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(async res => {
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                resultDiv.innerHTML = '<pre style="white-space:pre-wrap;word-wrap:break-word;">' + JSON.stringify(data, null, 2) + '</pre>';
+            }).catch(() => {
+                resultDiv.innerHTML = '<p>生成失败。</p>';
+            });
+        });
+    })();
+    </script>
+</body>
+</html>
